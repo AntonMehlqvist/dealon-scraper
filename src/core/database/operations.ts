@@ -113,6 +113,13 @@ export function getProductsBySite(
   }));
 }
 
+/**
+ * Ensures a store exists in the database, creating it if necessary
+ * @param db - Database connection
+ * @param host - Store host identifier
+ * @param siteKey - Optional site key for the store
+ * @returns The store ID (existing or newly created)
+ */
 export function ensureStore(
   db: Database.Database,
   host: string,
@@ -128,6 +135,12 @@ export function ensureStore(
   return Number(row.id);
 }
 
+/**
+ * Retrieves a store ID by host name
+ * @param db - Database connection
+ * @param host - Store host to look up
+ * @returns Store ID if found, null otherwise
+ */
 export function getStoreIdByHost(
   db: Database.Database,
   host: string,

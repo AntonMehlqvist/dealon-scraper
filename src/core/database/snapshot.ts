@@ -5,6 +5,11 @@
 import Database from "better-sqlite3";
 import type { SnapshotIndex } from "../types";
 
+/**
+ * Reads snapshot index data from the database
+ * @param db - Database connection
+ * @returns Snapshot index containing lastmod and last crawled timestamps by URL
+ */
 export function readSnapshotIndexDb(db: Database.Database): SnapshotIndex {
   const rows = db
     .prepare(`SELECT url, lastmod, last_crawled_at FROM snapshot_index`)
@@ -18,6 +23,11 @@ export function readSnapshotIndexDb(db: Database.Database): SnapshotIndex {
   return { lastmodByUrl, lastCrawledAtByUrl };
 }
 
+/**
+ * Writes snapshot index data to the database
+ * @param db - Database connection
+ * @param data - Snapshot index data to write
+ */
 export function writeSnapshotIndexDb(
   db: Database.Database,
   data: SnapshotIndex,

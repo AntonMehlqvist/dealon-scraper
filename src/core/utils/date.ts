@@ -41,6 +41,11 @@ export function formatZonedISO(
   return `${y}-${m}-${d}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`;
 }
 
+/**
+ * Formats a duration in seconds to a human-readable string
+ * @param sec - Duration in seconds
+ * @returns Formatted duration string (e.g., "1h30m45s")
+ */
 export function formatDuration(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   const h = Math.floor(s / 3600);

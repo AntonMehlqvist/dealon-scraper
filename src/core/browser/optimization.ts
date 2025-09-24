@@ -4,6 +4,11 @@
 
 import type { Page } from "playwright";
 
+/**
+ * Optimizes a page by blocking heavy resources (images, fonts, stylesheets)
+ * to improve performance and reduce memory usage
+ * @param page - Playwright page instance to optimize
+ */
 export async function optimizePage(page: Page): Promise<void> {
   // block heavy resources
   try {

@@ -8,7 +8,11 @@ import {
 import { readSnapshotIndexDb, writeSnapshotIndexDb } from "./database/snapshot";
 import { ProductRecord, SnapshotIndex } from "./types";
 
-/** Läs/skriv index för lastmod och senaste crawl-tid per URL */
+/**
+ * Reads snapshot index data from database
+ * @param dbPathOrJsonPath - Database file path
+ * @returns Snapshot index containing lastmod and last crawled timestamps by URL
+ */
 export async function readSnapshotIndex(
   dbPathOrJsonPath: string,
 ): Promise<SnapshotIndex> {
@@ -20,6 +24,11 @@ export async function readSnapshotIndex(
   }
 }
 
+/**
+ * Writes snapshot index data to database
+ * @param dbPathOrJsonPath - Database file path
+ * @param data - Snapshot index data to write
+ */
 export async function writeSnapshotIndex(
   dbPathOrJsonPath: string,
   data: SnapshotIndex,
@@ -37,6 +46,12 @@ export async function writeSnapshotIndex(
 
 /* --------------------------- product store helpers --------------------------- */
 
+/**
+ * Reads all products for a specific site from the database
+ * @param dbPath - Database file path
+ * @param siteHost - Site host to filter by
+ * @returns Record of product records keyed by product ID
+ */
 export async function readPerSiteStore(
   dbPath: string,
   siteHost: string,
@@ -52,6 +67,11 @@ export async function readPerSiteStore(
   }
 }
 
+/**
+ * Reads all products from all sites in the database
+ * @param dbPath - Database file path
+ * @returns Record of all product records keyed by product ID
+ */
 export async function readGlobalStore(
   dbPath: string,
 ): Promise<Record<string, ProductRecord>> {
@@ -73,6 +93,12 @@ export async function readGlobalStore(
   }
 }
 
+/**
+ * Writes product records for a specific site to the database
+ * @param dbPath - Database file path
+ * @param _siteHost - Site host (currently unused, derived from product URLs)
+ * @param store - Record of product records to write
+ */
 export async function writePerSiteStore(
   dbPath: string,
   _siteHost: string,
@@ -93,6 +119,11 @@ export async function writePerSiteStore(
   }
 }
 
+/**
+ * Writes all product records to the database
+ * @param dbPath - Database file path
+ * @param store - Record of all product records to write
+ */
 export async function writeGlobalStore(
   dbPath: string,
   store: Record<string, ProductRecord>,

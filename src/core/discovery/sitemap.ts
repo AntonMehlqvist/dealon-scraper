@@ -7,7 +7,11 @@ import { normalizeUrlKey, resolveLocation, uniq } from "../utils";
 import { fetchText } from "./fetcher";
 import { robotsSitemaps } from "./robots";
 
-/** Very lenient <loc> extractor */
+/**
+ * Extracts all <loc> elements from XML content (very lenient parser)
+ * @param xml - XML content to parse
+ * @returns Array of URL strings found in <loc> elements
+ */
 function extractLocs(xml: string): string[] {
   const re = /<loc>\s*([^<\s][^<]*)\s*<\/loc>/gi;
   const out: string[] = [];
@@ -16,6 +20,12 @@ function extractLocs(xml: string): string[] {
   return out;
 }
 
+/**
+ * Discovers product URLs from sitemaps and robots.txt
+ * Handles sitemap indexes, individual sitemaps, and robots.txt discovery
+ * @param adapter - Site adapter configuration
+ * @returns Array of discovered product URLs
+ */
 export async function discoverProductUrls(
   adapter: SiteAdapter,
 ): Promise<string[]> {

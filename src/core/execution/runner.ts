@@ -20,6 +20,9 @@ import {
 import type { ProductRecord, SiteAdapter } from "../types";
 import { formatDuration } from "../utils";
 
+/**
+ * Configuration options for running a site extraction
+ */
 export interface RunnerOptions {
   outDirBase: string;
   snapshotPath: string;
@@ -33,6 +36,13 @@ export interface RunnerOptions {
 }
 
 /* ------------------------------- small utils ------------------------------- */
+
+/**
+ * Reads and parses a JSON file with fallback value
+ * @param file - File path to read
+ * @param fallback - Fallback value if file doesn't exist or is invalid
+ * @returns Parsed JSON data or fallback value
+ */
 async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
     const raw = await fs.promises.readFile(file, "utf-8");
@@ -42,6 +52,11 @@ async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
+/**
+ * Writes data to a JSON file with pretty formatting
+ * @param file - File path to write to
+ * @param data - Data to serialize to JSON
+ */
 async function writeJson(file: string, data: unknown): Promise<void> {
   await fs.promises.mkdir(path.dirname(file), { recursive: true });
   await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf-8");
@@ -51,6 +66,12 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------------------------------- runSite --------------------------------- */
 
+/**
+ * Main site extraction runner that orchestrates the entire process
+ * Handles URL discovery, product extraction, database storage, and output generation
+ * @param adapter - Site adapter configuration
+ * @param options - Runner configuration options
+ */
 export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
   const t0 = performance.now();
 

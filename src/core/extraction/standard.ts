@@ -5,6 +5,14 @@
 import type { Page } from "playwright";
 import type { Product, SiteAdapter } from "../types";
 
+/**
+ * Extracts product information using standard JSON-LD and DOM fallback methods
+ * First attempts to parse structured data from JSON-LD scripts, then falls back to DOM selectors
+ * @param adapter - Site adapter configuration
+ * @param page - Playwright page instance
+ * @param url - URL being processed
+ * @returns Extracted product information
+ */
 export async function extractStandard(
   adapter: SiteAdapter,
   page: Page,

@@ -5,6 +5,11 @@
 import { uniq } from "../utils";
 import { fetchText } from "./fetcher";
 
+/**
+ * Discovers sitemap URLs from robots.txt file
+ * @param baseHost - Base host to fetch robots.txt from
+ * @returns Array of sitemap URLs found in robots.txt
+ */
 export async function robotsSitemaps(baseHost: string): Promise<string[]> {
   const robotsUrl = `https://${baseHost}/robots.txt`;
   try {

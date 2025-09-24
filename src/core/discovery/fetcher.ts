@@ -4,7 +4,12 @@
 
 import { BROWSER_CONSTANTS } from "../constants";
 
-/** Fetch text with a browser-like UA. */
+/**
+ * Fetches text content from a URL with browser-like headers
+ * @param url - URL to fetch
+ * @returns Text content of the response
+ * @throws Error if the request fails
+ */
 export async function fetchTextOnce(url: string): Promise<string> {
   const r = await fetch(url, {
     redirect: "follow",
@@ -32,6 +37,14 @@ export async function fetchTextOnce(url: string): Promise<string> {
   }
 }
 
+/**
+ * Fetches text content with retry logic and exponential backoff
+ * @param url - URL to fetch
+ * @param retries - Number of retry attempts (default: 4)
+ * @param baseDelayMs - Base delay between retries in milliseconds (default: 500)
+ * @returns Text content of the response
+ * @throws Error if all retry attempts fail
+ */
 export async function fetchText(
   url: string,
   retries = 4,

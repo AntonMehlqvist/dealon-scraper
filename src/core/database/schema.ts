@@ -4,6 +4,11 @@
 
 import Database from "better-sqlite3";
 
+/**
+ * Initializes the database schema with all required tables, indexes, and views
+ * Also handles lightweight migrations for existing databases
+ * @param db - Database connection to initialize
+ */
 export function initSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS stores (
