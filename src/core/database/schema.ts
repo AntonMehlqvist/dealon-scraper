@@ -39,18 +39,6 @@ export function initSchema(db: Database.Database): void {
       PRIMARY KEY (id, url)
     );
 
-    CREATE TABLE IF NOT EXISTS product_history (
-      id TEXT NOT NULL,
-      ts TEXT NOT NULL,
-      changes_json TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS snapshot_index (
-      url TEXT PRIMARY KEY,
-      lastmod TEXT,
-      last_crawled_at TEXT
-    );
-
     /* -------------------- indexes & unique constraints -------------------- */
     /* Use non-unique indexes for now to avoid failing on existing duplicates.
        We can backfill/dedupe and then promote to UNIQUE later. */
@@ -63,23 +51,6 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_sources_url ON product_sources(url);
     CREATE INDEX IF NOT EXISTS idx_history_id_ts ON product_history(id, ts DESC);
     CREATE INDEX IF NOT EXISTS idx_snapshot_last_crawled ON snapshot_index(last_crawled_at);
-
-    /* ----------------------------- reporting views ---------------------------- */
-    CREATE VIEW IF NOT EXISTS current_products_by_site AS
-    SELECT p.*
-    FROM products p
-    WHERE (p.id, p.last_updated) IN (
-      SELECT id, MAX(last_updated)
-      FROM products
-      GROUP BY id
-    );
-
-    /* Best price per EAN across all sites (ignores NULL prices and NULL EANs) */
-    CREATE VIEW IF NOT EXISTS best_price_per_ean AS
-    SELECT ean, MIN(price) AS best_price
-    FROM products
-    WHERE ean IS NOT NULL AND price IS NOT NULL
-    GROUP BY ean;
   `);
 
   // --- lightweight migration: add missing columns on existing DBs ---

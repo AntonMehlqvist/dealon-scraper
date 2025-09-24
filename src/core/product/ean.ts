@@ -5,11 +5,26 @@
 import type { Product, ProductRecord } from "../types";
 import { formatZonedISO, normalizeUrlKey } from "../utils";
 
-/** ID per BUTIK: "<host>|<ean>" eller fallback "<host>|<normalizedUrl>" */
+/**
+ * Generates a unique ID for a product based on EAN or normalized URL
+ * @param p - The product to generate ID for
+ * @param siteHost - The site host for the ID prefix
+ * @returns Unique product ID in format "<host>|<ean>" or "<host>|<normalizedUrl>"
+ */
 export const idFor = (p: Product, siteHost: string): string =>
   (p.ean && `${siteHost}|${p.ean.trim()}`) ||
   `${siteHost}|${normalizeUrlKey(p.url)}`;
 
+/**
+ * Upserts a product into the store by EAN, handling deduplication and history tracking
+ * @param store - The product store to update
+ * @param incoming - The new product data
+ * @param siteHost - The site host for ID generation
+ * @param lastmod - Optional last modification timestamp
+ * @param trackHistory - Whether to track price/stock changes
+ * @param historyKeys - Which fields to track in history
+ * @returns Object with the updated record and whether it changed
+ */
 export function upsertByEan(
   store: Record<string, ProductRecord>,
   incoming: Product,

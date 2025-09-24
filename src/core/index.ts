@@ -2,6 +2,9 @@
  * Core module index - exports all core functionality
  */
 
+// Constants
+export * from "./constants";
+
 // Database
 export * from "./database";
 
@@ -31,6 +34,9 @@ export * from "./config";
 
 // Types
 export * from "./types";
+
+// Validation
+export * from "./validation";
 
 // Sitemap (legacy)
 export * from "./sitemap";

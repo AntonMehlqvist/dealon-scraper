@@ -5,6 +5,12 @@
 import Database from "better-sqlite3";
 import type { ProductRecord } from "../types";
 
+/**
+ * Upserts a product record into the database
+ * @param db - Database connection
+ * @param record - Product record to upsert
+ * @param storeId - Optional store ID to associate with the product
+ */
 export function upsertProduct(
   db: Database.Database,
   record: ProductRecord,
@@ -69,6 +75,12 @@ export function upsertProduct(
   }
 }
 
+/**
+ * Retrieves all products for a specific site from the database
+ * @param db - Database connection
+ * @param siteHost - The site host to filter by
+ * @returns Array of product records for the site
+ */
 export function getProductsBySite(
   db: Database.Database,
   siteHost: string,
