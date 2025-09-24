@@ -1,0 +1,24 @@
+{
+  "name": "multi-site",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "start-all": "npm run build && RUN_MODE=full node dist/orchestrator.js --sites apotea,apoteket,kronans,apohem,hjartat",
+    "prod": "npm run build && npm run start",
+    "migrate": "node dist/migrate.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "dotenv": "^16.4.5",
+    "p-limit": "^4.0.0",
+    "playwright": "^1.46.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "dotenv-cli": "^10.0.0",
+    "typescript": "^5.5.0"
+  }
+}
