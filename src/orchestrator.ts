@@ -7,23 +7,139 @@ import { envInt, envStr } from "./core/config";
 import { DEFAULT_SITES } from "./core/config/sites";
 import { runSite } from "./core/execution";
 
-// Adapters
-import { adapter as template } from "./sites/_template/adapter";
-import { adapter as apohem } from "./sites/apohem/adapter";
-import { adapter as apotea } from "./sites/apotea/adapter";
-import { adapter as apoteket } from "./sites/apoteket/adapter";
-import { adapter as hjartat } from "./sites/hjartat/adapter";
-import { adapter as kronans } from "./sites/kronans/adapter";
+// Pharmacy Adapters
+import { adapter as apohem } from "./sites/pharmacy/apohem/adapter";
+import { adapter as apotea } from "./sites/pharmacy/apotea/adapter";
+import { adapter as apoteket } from "./sites/pharmacy/apoteket/adapter";
+import { adapter as hjartat } from "./sites/pharmacy/hjartat/adapter";
+import { adapter as kronans } from "./sites/pharmacy/kronans/adapter";
 
-/* ---------------- registry ---------------- */
+// Electronics Adapters
+import { adapter as elgiganten } from "./sites/electronics/elgiganten/adapter";
+import { adapter as inet } from "./sites/electronics/inet/adapter";
+import { adapter as kjell } from "./sites/electronics/kjell/adapter";
+import { adapter as netonnet } from "./sites/electronics/netonnet/adapter";
+import { adapter as power } from "./sites/electronics/power/adapter";
+import { adapter as webhallen } from "./sites/electronics/webhallen/adapter";
+
+// Template
+import { adapter as template } from "./sites/_template/adapter";
+
+/* ---------------- Site Categories ---------------- */
+const SITE_CATEGORIES = {
+  pharmacy: {
+    name: "Pharmacy",
+    sites: ["apoteket", "apotea", "kronans", "apohem", "hjartat"],
+    description: "Swedish pharmacy websites",
+  },
+  electronics: {
+    name: "Electronics",
+    sites: ["elgiganten", "webhallen", "netonnet", "power", "kjell", "inet"],
+    description: "Electronics and technology retailers",
+  },
+  template: {
+    name: "Template",
+    sites: ["_template"],
+    description: "Template for new adapters",
+  },
+} as const;
+
+/* ---------------- Site Registry ---------------- */
 const registry = new Map<string, any>([
+  // Pharmacy sites
   ["apoteket", apoteket],
   ["apotea", apotea],
   ["kronans", kronans],
   ["apohem", apohem],
   ["hjartat", hjartat],
+
+  // Electronics sites
+  ["elgiganten", elgiganten],
+  ["webhallen", webhallen],
+  ["netonnet", netonnet],
+  ["power", power],
+  ["kjell", kjell],
+  ["inet", inet],
+
+  // Template
   ["_template", template],
 ]);
+
+/* ---------------- CLI Helpers ---------------- */
+function showHelp() {
+  console.log(`
+Multi-Site Scraper - Site Selection Options
+
+Usage:
+  npm start                           # Run all default sites
+  npm start -- --category pharmacy    # Run all pharmacy sites
+  npm start -- --category electronics # Run all electronics sites
+  npm start -- --sites apotea,elgiganten # Run specific sites
+  npm start -- --list                 # List all available sites
+
+Categories:
+${Object.entries(SITE_CATEGORIES)
+  .map(
+    ([key, cat]) =>
+      `  ${key.padEnd(12)} - ${cat.name}: ${cat.sites.join(", ")}`,
+  )
+  .join("\n")}
+
+Available Sites:
+  ${Array.from(registry.keys()).sort().join(", ")}
+`);
+}
+
+function parseCliArgs() {
+  const argv = process.argv.slice(2);
+
+  // Show help
+  if (argv.includes("--help") || argv.includes("-h")) {
+    showHelp();
+    process.exit(0);
+  }
+
+  // List sites
+  if (argv.includes("--list")) {
+    console.log("Available sites by category:");
+    Object.entries(SITE_CATEGORIES).forEach(([key, cat]) => {
+      console.log(`\n${cat.name} (${key}):`);
+      cat.sites.forEach((site) => {
+        const adapter = registry.get(site);
+        console.log(
+          `  ${site.padEnd(12)} - ${adapter?.displayName || "Unknown"}`,
+        );
+      });
+    });
+    process.exit(0);
+  }
+
+  // Parse category
+  const categoryIdx = argv.indexOf("--category");
+  if (categoryIdx >= 0 && argv[categoryIdx + 1]) {
+    const category = argv[categoryIdx + 1];
+    if (category in SITE_CATEGORIES) {
+      return SITE_CATEGORIES[category as keyof typeof SITE_CATEGORIES].sites;
+    } else {
+      console.error(`❌ Unknown category: ${category}`);
+      console.error(
+        `Available categories: ${Object.keys(SITE_CATEGORIES).join(", ")}`,
+      );
+      process.exit(1);
+    }
+  }
+
+  // Parse specific sites
+  const sitesIdx = argv.indexOf("--sites");
+  if (sitesIdx >= 0 && argv[sitesIdx + 1]) {
+    return argv[sitesIdx + 1]
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  return null;
+}
 
 /* ---------------- small utils ---------------- */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -49,19 +165,6 @@ function extractLocs(xml: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(xml))) out.push(m[1].trim());
   return Array.from(new Set(out));
-}
-
-/* --------------- CLI arg parsing --------------- */
-function parseArgvSites(): string[] | null {
-  const argv = process.argv.slice(2);
-  const idx = argv.indexOf("--sites");
-  if (idx >= 0 && argv[idx + 1]) {
-    return argv[idx + 1]
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return null;
 }
 
 /* --------------- run helpers ------------------- */
@@ -174,14 +277,34 @@ async function runApohemChunked() {
 
 /* --------------------- main --------------------- */
 async function main() {
-  // Accept --sites (comma) OR use default sites
-  let siteKeys = parseArgvSites();
+  // Parse CLI arguments
+  let siteKeys = parseCliArgs();
+
   if (!siteKeys) {
     // No command line sites provided, use defaults
     siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
   } else {
-    siteKeys = siteKeys.filter((k) => registry.has(k));
+    // Filter to only include valid sites
+    const validSites = siteKeys.filter((k) => registry.has(k));
+    const invalidSites = siteKeys.filter((k) => !registry.has(k));
+
+    if (invalidSites.length > 0) {
+      console.error(`❌ Unknown sites: ${invalidSites.join(", ")}`);
+      console.error(
+        `Available sites: ${Array.from(registry.keys()).join(", ")}`,
+      );
+      process.exit(1);
+    }
+
+    siteKeys = validSites;
   }
+
+  if (siteKeys.length === 0) {
+    console.error("❌ No valid sites to run");
+    process.exit(1);
+  }
+
+  console.log(`🚀 Starting ${siteKeys.length} site(s): ${siteKeys.join(", ")}`);
 
   const HEADSTART_MS = Number(process.env.APOK_HEADSTART_MS || 4000);
   const hasApoteket = siteKeys.includes("apoteket");
@@ -200,7 +323,7 @@ async function main() {
       console.error(`Available: ${Array.from(registry.keys()).join(", ")}`);
       return null;
     }
-    console.log(`\n=== Starting site: ${siteKey} ===`);
+    console.log(`\n=== Starting site: ${siteKey} (${adapter.displayName}) ===`);
     await runSite(adapter, runOpts(siteKey));
     console.log(`=== Finished site: ${siteKey} ===\n`);
     return siteKey;

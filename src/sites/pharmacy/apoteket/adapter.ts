@@ -1,6 +1,6 @@
 // src/sites/apoteket/adapter.ts
 import type { Page, Route, Request } from "playwright";
-import type { SiteAdapter, Product } from "../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types";
 
 const ORIGIN = "https://www.apoteket.se";
 const abs = (u: string | null) => (!u ? null : u.startsWith("//") ? "https:" + u : u.startsWith("/") ? ORIGIN + u : u);

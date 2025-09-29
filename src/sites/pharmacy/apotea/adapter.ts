@@ -1,5 +1,5 @@
 // src/sites/apotea/adapter.ts
-import type { SiteAdapter } from "../../core/types";
+import type { SiteAdapter } from "../../../core/types";
 
 /**
  * Apotea.se – sitemap-driven adapter

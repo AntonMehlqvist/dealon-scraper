@@ -7,10 +7,13 @@
     "start": "node dist/cli.js",
     "start-all": "npm run build && RUN_MODE=full node dist/orchestrator.js --sites apotea,apoteket,kronans,apohem,hjartat",
     "prod": "npm run build && npm run start",
+    "help": "npm run build && npm start -- --help",
     "migrate": "node dist/migrate.js"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.35",
     "better-sqlite3": "^9.6.0",
+    "cheerio": "^1.1.2",
     "dotenv": "^16.4.5",
     "p-limit": "^4.0.0",
     "playwright": "^1.46.0"

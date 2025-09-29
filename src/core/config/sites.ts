@@ -15,12 +15,20 @@
 /**
  * Default sites to process when no specific sites are provided
  *
- * Available sites:
+ * Available pharmacy sites:
  * - apoteket: Apoteket.se
  * - apotea: Apotea.se
  * - kronans: Kronans Apotek
  * - apohem: Apohem.se
  * - hjartat: Hjärtat Apotek
+ *
+ * Available electronics sites:
+ * - elgiganten: Elgiganten.se
+ * - webhallen: Webhallen.com
+ * - netonnet: NetOnNet.se
+ * - power: Power.se
+ * - kjell: Kjell.com
+ * - inet: Inet.se
  */
 export const DEFAULT_SITES = [
   "apoteket",

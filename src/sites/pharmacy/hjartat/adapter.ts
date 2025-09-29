@@ -1,13 +1,5 @@
-import type { Page, Route, Request } from "playwright";
-import type { SiteAdapter, Product } from "../../core/types";
-
-const ORIGIN = "https://www.apohem.se";
-const absUrl = (u: string | null) => {
-  if (!u) return null;
-  if (u.startsWith("//")) return "https:" + u;
-  if (u.startsWith("/")) return ORIGIN + u;
-  return u;
-};
+import type { Page } from "playwright";
+import type { SiteAdapter, Product } from "../../../core/types";
 
 async function fetchHtml(url: string): Promise<string | null> {
   try {
@@ -30,13 +22,12 @@ async function fetchHtml(url: string): Promise<string | null> {
   }
 }
 
-// ---- snabba parsers (HTML -> fält) ----
+// ---- parsers ----
 function parsePrice(html: string): number | null {
-  const metas =
-    html.match(/<meta[^>]+(?:itemprop="price"|property="(?:product:price:amount|og:price:amount)")\s+content="([^"]+)"/gi) || [];
-  for (const m of metas) {
-    const v = /content="([^"]+)"/i.exec(m)?.[1] || "";
-    const n = Number(v.replace(/[^\d.,]/g, "").replace(",", "."));
+  // meta price först
+  const mMeta = /<meta[^>]+property="product:price:amount"[^>]+content="([^"]+)"/i.exec(html);
+  if (mMeta) {
+    const n = Number(mMeta[1].replace(/[^\d.,]/g, "").replace(",", "."));
     if (Number.isFinite(n)) return n;
   }
   // fallback: första "<tal> kr"
@@ -50,11 +41,9 @@ function parsePrice(html: string): number | null {
   return null;
 }
 function parseEan(html: string): string | null {
-  // primärt: data-product-id
-  const m1 = /data-product-id="(\d{8,14})"/i.exec(html);
+  const m1 = /EAN[^0-9]{0,10}(\d{8,14})/i.exec(html);
   if (m1) return m1[1];
-  // snäv fallback nära produkt-block
-  const m2 = /(?:EAN[^0-9]{0,10})?(\d{8,14})(?!\d)/i.exec(html);
+  const m2 = /(?:^|[^\d])(\d{8,14})(?!\d)/i.exec(html);
   return m2 ? m2[1] : null;
 }
 function parseTitle(html: string): string | null {
@@ -62,32 +51,31 @@ function parseTitle(html: string): string | null {
          /<h1[^>]*>([^<]+)<\/h1>/i.exec(html)?.[1] ?? null;
 }
 function parseImage(html: string): string | null {
-  const og = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i.exec(html)?.[1] ?? null;
-  return absUrl(og);
+  return /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i.exec(html)?.[1] ?? null;
 }
 function parseBrand(html: string): string | null {
-  // enkel heuristik: varumärken-länk
-  return /<a[^>]+href="\/varumarken\/[^"]+"[^>]*>([^<]{2,100})<\/a>/i.exec(html)?.[1]?.trim() ?? null;
+  // "Mer från <Brand>" eller breadcrumb/up-länk
+  const m1 = /Mer från\s*([^<]{2,100})<\/a>/i.exec(html)?.[1];
+  if (m1) return m1.trim();
+  const m2 = /<nav[^>]*>\s*<a[^>]+rel="up"[^>]*>([^<]+)<\/a>/i.exec(html)?.[1];
+  return m2 ? m2.trim() : null;
 }
 function parseInStock(html: string): boolean | null {
   const t = html.toLowerCase();
-  if (/i lager|finns i webblager/.test(t)) return true;
-  if (/ej i lager|slut i lager|tillfälligt slut/.test(t)) return false;
+  if (/webblager|i lager|finns i webblager/.test(t)) return true;
+  if (/slut|tillfälligt slut|ej i lager/.test(t)) return false;
   return null;
 }
 
 export const adapter: SiteAdapter = {
-  key: "apohem",
-  displayName: "Apohem",
-  baseHost: "www.apohem.se",
+  key: "hjartat",
+  displayName: "Apotek Hjärtat",
+  baseHost: "www.apotekhjartat.se",
 
   discovery: {
-    // kör batch-sitemaps direkt
-    sitemapUrl: [
-      "https://www.apohem.se/sitemap.xml?batch=0&language=sv-se",
-      "https://www.apohem.se/sitemap.xml?batch=1&language=sv-se",
-      "https://www.apohem.se/sitemap.xml?batch=2&language=sv-se",
-    ] as any,
+    sitemapUrl: "https://www.apotekhjartat.se/api/sitemap/sitemapindex.xml",
+    productUrlRegex:
+      /^https?:\/\/(?:www\.)?apotekhjartat\.se\/varumarken\/[^/]+\/(?!kategori|kampanj|varumarken|barn-och-foralder|harvard|hudvard|munvard|kosttillskott|vard)[^?#]+$/i,
   },
 
   normalizeUrl: (raw) => {
@@ -98,7 +86,6 @@ export const adapter: SiteAdapter = {
     return u.toString();
   },
 
-  // fartprofil (samma som innan)
   pacing: {
     hostMaxNavRps: 3.0,
     ramp: [
@@ -115,40 +102,20 @@ export const adapter: SiteAdapter = {
     fetchRetries: 5,
     fetchRetryBaseMs: 800,
     errorWindow: 900,
-    errorRateWarn: 0.06,
+    errorRateWarn: 0.05,
     errorRateGood: 0.02,
     cooldownSeconds: 120,
   },
 
-  consent: async (page: Page) => {
-    const sels = [
-      'button:has-text("Acceptera")',
-      'button:has-text("Acceptera alla")',
-      'button:has-text("Godkänn")',
-      '[data-testid*="accept" i]',
-      '[aria-label*="acceptera" i]',
-    ];
-    for (const s of sels) {
-      try {
-        const btn = page.locator(s).first();
-        if (await btn.isVisible({ timeout: 600 }).catch(() => false)) {
-          await btn.click({ timeout: 1200 }).catch(() => {});
-          break;
-        }
-      } catch {}
-    }
-  },
-
   fastpathAdjust: (_html, p) => {
     if (!p.currency) p.currency = "SEK";
-    p.imageUrl = absUrl(p.imageUrl);
     return p;
   },
 
   defaults: { currency: "SEK" },
 
   customExtract: async (page: Page, url: string): Promise<Product> => {
-    // 1) HTML fastpath (ingen Playwright-DOM om vi får allt här)
+    // 1) HTML fastpath
     const html = await fetchHtml(url);
     if (html) {
       const ean = parseEan(html);
@@ -172,16 +139,7 @@ export const adapter: SiteAdapter = {
       }
     }
 
-    // 2) Fallback: lätt Playwright + page.content() (fortfarande ingen innerText)
-    await page.route("**/*", (route: Route) => {
-      const req: Request = route.request();
-      const type = req.resourceType();
-      const u = req.url();
-      if (["image", "media", "font", "stylesheet"].includes(type)) return route.abort();
-      if (/analytics|gtm|googletagmanager|doubleclick|hotjar|segment|optimizely|facebook|pixel|sentry|fullstory/i.test(u))
-        return route.abort();
-      return route.continue();
-    });
+    // 2) Fallback: Playwright men bara page.content() (ingen innerText)
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
     const html2 = (await page.content().catch(() => "")) || html || "";
 
