@@ -6,7 +6,6 @@ import path from "node:path";
 import { envInt, envStr } from "./core/config";
 import { DEFAULT_SITES } from "./core/config/sites";
 import { runSite } from "./core/execution";
-import { getConfig } from "./core/storage";
 
 // Adapters
 import { adapter as template } from "./sites/_template/adapter";
@@ -175,29 +174,11 @@ async function runApohemChunked() {
 
 /* --------------------- main --------------------- */
 async function main() {
-  // Accept --sites (comma) OR database configuration fallback OR default sites
+  // Accept --sites (comma) OR use default sites
   let siteKeys = parseArgvSites();
   if (!siteKeys) {
-    const dbPath = process.env.DB_PATH || "state/data.sqlite";
-    const sitesConfig = await getConfig(dbPath, "sites");
-    if (sitesConfig) {
-      try {
-        const cfg = JSON.parse(sitesConfig) as { sites?: string[] };
-        if (cfg.sites?.length) {
-          siteKeys = cfg.sites.filter((k) => registry.has(k));
-        } else {
-          siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
-        }
-      } catch (e) {
-        console.warn(
-          "⚠️  Invalid sites configuration in database, using defaults",
-        );
-        siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
-      }
-    } else {
-      // No database configuration, use defaults
-      siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
-    }
+    // No command line sites provided, use defaults
+    siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
   } else {
     siteKeys = siteKeys.filter((k) => registry.has(k));
   }

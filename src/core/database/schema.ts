@@ -38,11 +38,6 @@ export function initSchema(db: Database.Database): void {
       FOREIGN KEY (store_id) REFERENCES stores(id)
     );
 
-    CREATE TABLE IF NOT EXISTS configuration (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
 
     /* -------------------- indexes & unique constraints -------------------- */
     /* Use non-unique indexes for now to avoid failing on existing duplicates.

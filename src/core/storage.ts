@@ -2,10 +2,7 @@
 import { closeDb, openDb } from "./database/connection";
 import {
   ensureStore,
-  getAllConfigValues,
-  getConfigValue,
   getProductsBySite,
-  setConfigValue,
   upsertProduct,
 } from "./database/operations";
 import { ProductRecord } from "./types";
@@ -107,59 +104,6 @@ export async function writeGlobalStore(
       }
     });
     tx(Object.values(store));
-  } finally {
-    closeDb(h);
-  }
-}
-
-/**
- * Sets a configuration value in the database
- * @param dbPath - Database file path
- * @param key - Configuration key
- * @param value - Configuration value
- */
-export async function setConfig(
-  dbPath: string,
-  key: string,
-  value: string,
-): Promise<void> {
-  const h = openDb(dbPath);
-  try {
-    setConfigValue(h.db, key, value);
-  } finally {
-    closeDb(h);
-  }
-}
-
-/**
- * Gets a configuration value from the database
- * @param dbPath - Database file path
- * @param key - Configuration key
- * @returns Configuration value if found, null otherwise
- */
-export async function getConfig(
-  dbPath: string,
-  key: string,
-): Promise<string | null> {
-  const h = openDb(dbPath);
-  try {
-    return getConfigValue(h.db, key);
-  } finally {
-    closeDb(h);
-  }
-}
-
-/**
- * Gets all configuration values from the database
- * @param dbPath - Database file path
- * @returns Record of all configuration key-value pairs
- */
-export async function getAllConfig(
-  dbPath: string,
-): Promise<Record<string, string>> {
-  const h = openDb(dbPath);
-  try {
-    return getAllConfigValues(h.db);
   } finally {
     closeDb(h);
   }
