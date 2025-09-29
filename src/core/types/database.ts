@@ -33,20 +33,3 @@ export interface StoreRow {
   created_at: string;
   active: number;
 }
-
-export interface ProductSourceRow {
-  id: string;
-  url: string;
-}
-
-export interface ProductHistoryRow {
-  id: string;
-  ts: string;
-  changes_json: string;
-}
-
-export interface SnapshotIndexRow {
-  url: string;
-  lastmod: string | null;
-  last_crawled_at: string | null;
-}

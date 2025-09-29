@@ -176,13 +176,6 @@ export function validateProductRecord(record: unknown): ProductRecord {
     );
   }
 
-  if (!Array.isArray(r.sourceUrls)) {
-    throw new ValidationError(
-      "ProductRecord sourceUrls must be an array",
-      "sourceUrls",
-    );
-  }
-
   if (
     r.lastmodByUrl !== null &&
     r.lastmodByUrl !== undefined &&
@@ -194,26 +187,13 @@ export function validateProductRecord(record: unknown): ProductRecord {
     );
   }
 
-  if (
-    r.history !== null &&
-    r.history !== undefined &&
-    !Array.isArray(r.history)
-  ) {
-    throw new ValidationError(
-      "ProductRecord history must be an array or null",
-      "history",
-    );
-  }
-
   return {
     ...product,
     id: r.id,
     firstSeen: r.firstSeen,
     lastUpdated: r.lastUpdated,
     lastCrawled: r.lastCrawled ?? null,
-    sourceUrls: r.sourceUrls,
     lastmodByUrl: r.lastmodByUrl ?? null,
-    history: r.history ?? null,
   };
 }
 

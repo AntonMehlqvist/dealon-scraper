@@ -4,7 +4,9 @@ import { promises as fs } from "fs";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { envInt, envStr } from "./core/config";
+import { DEFAULT_SITES } from "./core/config/sites";
 import { runSite } from "./core/execution";
+import { getConfig } from "./core/storage";
 
 // Adapters
 import { adapter as template } from "./sites/_template/adapter";
@@ -173,18 +175,29 @@ async function runApohemChunked() {
 
 /* --------------------- main --------------------- */
 async function main() {
-  // Accept --sites (comma) OR sites.json fallback
+  // Accept --sites (comma) OR database configuration fallback OR default sites
   let siteKeys = parseArgvSites();
   if (!siteKeys) {
-    const raw = await fs.readFile("sites.json", "utf8").catch(() => "{}");
-    const cfg = JSON.parse(raw || "{}") as { sites?: string[] };
-    if (!cfg.sites?.length) {
-      console.error(
-        "❌ Provide --sites a,b,c or sites.json with { sites: [...] }",
-      );
-      process.exit(1);
+    const dbPath = process.env.DB_PATH || "state/data.sqlite";
+    const sitesConfig = await getConfig(dbPath, "sites");
+    if (sitesConfig) {
+      try {
+        const cfg = JSON.parse(sitesConfig) as { sites?: string[] };
+        if (cfg.sites?.length) {
+          siteKeys = cfg.sites.filter((k) => registry.has(k));
+        } else {
+          siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
+        }
+      } catch (e) {
+        console.warn(
+          "⚠️  Invalid sites configuration in database, using defaults",
+        );
+        siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
+      }
+    } else {
+      // No database configuration, use defaults
+      siteKeys = DEFAULT_SITES.filter((k) => registry.has(k));
     }
-    siteKeys = cfg.sites.filter((k) => registry.has(k));
   } else {
     siteKeys = siteKeys.filter((k) => registry.has(k));
   }

@@ -38,10 +38,10 @@ export function initSchema(db: Database.Database): void {
       FOREIGN KEY (store_id) REFERENCES stores(id)
     );
 
-    CREATE TABLE IF NOT EXISTS product_sources (
-      id TEXT NOT NULL,
-      url TEXT NOT NULL,
-      PRIMARY KEY (id, url)
+    CREATE TABLE IF NOT EXISTS configuration (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     /* -------------------- indexes & unique constraints -------------------- */
@@ -53,9 +53,6 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_products_ean ON products(ean) WHERE ean IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_products_last_crawled ON products(last_crawled);
 
-    CREATE INDEX IF NOT EXISTS idx_sources_url ON product_sources(url);
-    CREATE INDEX IF NOT EXISTS idx_history_id_ts ON product_history(id, ts DESC);
-    CREATE INDEX IF NOT EXISTS idx_snapshot_last_crawled ON snapshot_index(last_crawled_at);
   `);
 
   // --- lightweight migration: add missing columns on existing DBs ---

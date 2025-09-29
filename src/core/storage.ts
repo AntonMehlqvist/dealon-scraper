@@ -2,44 +2,13 @@
 import { closeDb, openDb } from "./database/connection";
 import {
   ensureStore,
+  getAllConfigValues,
+  getConfigValue,
   getProductsBySite,
+  setConfigValue,
   upsertProduct,
 } from "./database/operations";
-import { readSnapshotIndexDb, writeSnapshotIndexDb } from "./database/snapshot";
-import { ProductRecord, SnapshotIndex } from "./types";
-
-/**
- * Reads snapshot index data from database
- * @param dbPathOrJsonPath - Database file path
- * @returns Snapshot index containing lastmod and last crawled timestamps by URL
- */
-export async function readSnapshotIndex(
-  dbPathOrJsonPath: string,
-): Promise<SnapshotIndex> {
-  const h = openDb(dbPathOrJsonPath);
-  try {
-    return readSnapshotIndexDb(h.db);
-  } finally {
-    closeDb(h);
-  }
-}
-
-/**
- * Writes snapshot index data to database
- * @param dbPathOrJsonPath - Database file path
- * @param data - Snapshot index data to write
- */
-export async function writeSnapshotIndex(
-  dbPathOrJsonPath: string,
-  data: SnapshotIndex,
-): Promise<void> {
-  const h = openDb(dbPathOrJsonPath);
-  try {
-    writeSnapshotIndexDb(h.db, data);
-  } finally {
-    closeDb(h);
-  }
-}
+import { ProductRecord } from "./types";
 
 /** Migrate JSON snapshot/shops into SQLite if DB is empty but JSON exists */
 // Migration from JSON removed (SQLite only)
@@ -138,6 +107,59 @@ export async function writeGlobalStore(
       }
     });
     tx(Object.values(store));
+  } finally {
+    closeDb(h);
+  }
+}
+
+/**
+ * Sets a configuration value in the database
+ * @param dbPath - Database file path
+ * @param key - Configuration key
+ * @param value - Configuration value
+ */
+export async function setConfig(
+  dbPath: string,
+  key: string,
+  value: string,
+): Promise<void> {
+  const h = openDb(dbPath);
+  try {
+    setConfigValue(h.db, key, value);
+  } finally {
+    closeDb(h);
+  }
+}
+
+/**
+ * Gets a configuration value from the database
+ * @param dbPath - Database file path
+ * @param key - Configuration key
+ * @returns Configuration value if found, null otherwise
+ */
+export async function getConfig(
+  dbPath: string,
+  key: string,
+): Promise<string | null> {
+  const h = openDb(dbPath);
+  try {
+    return getConfigValue(h.db, key);
+  } finally {
+    closeDb(h);
+  }
+}
+
+/**
+ * Gets all configuration values from the database
+ * @param dbPath - Database file path
+ * @returns Record of all configuration key-value pairs
+ */
+export async function getAllConfig(
+  dbPath: string,
+): Promise<Record<string, string>> {
+  const h = openDb(dbPath);
+  try {
+    return getAllConfigValues(h.db);
   } finally {
     closeDb(h);
   }

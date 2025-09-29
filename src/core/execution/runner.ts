@@ -3,7 +3,6 @@
  */
 
 import fs from "node:fs";
-import path from "node:path";
 import { performance } from "node:perf_hooks";
 import pLimit from "p-limit";
 
@@ -36,31 +35,6 @@ export interface RunnerOptions {
 }
 
 /* ------------------------------- small utils ------------------------------- */
-
-/**
- * Reads and parses a JSON file with fallback value
- * @param file - File path to read
- * @param fallback - Fallback value if file doesn't exist or is invalid
- * @returns Parsed JSON data or fallback value
- */
-async function readJson<T>(file: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.promises.readFile(file, "utf-8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-/**
- * Writes data to a JSON file with pretty formatting
- * @param file - File path to write to
- * @param data - Data to serialize to JSON
- */
-async function writeJson(file: string, data: unknown): Promise<void> {
-  await fs.promises.mkdir(path.dirname(file), { recursive: true });
-  await fs.promises.writeFile(file, JSON.stringify(data, null, 2), "utf-8");
-}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -159,14 +133,6 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
   if (discoveryUrls.length === 0) {
     await writePerSiteStore(dbPath, siteHost, perSiteStore);
     await writeGlobalStore(dbPath, globalStore);
-
-    const now = new Date();
-    const outDir = path.join(
-      options.outDirBase,
-      `${siteKey}-${now.toISOString().slice(0, 19).replace(/[:T]/g, "-")}`,
-    );
-    await fs.promises.mkdir(outDir, { recursive: true });
-    await writeJson(path.join(outDir, "products.json"), []);
 
     const dur = ((performance.now() - t0) / 1000).toFixed(2);
     console.log(
@@ -323,20 +289,11 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
     await writeGlobalStore(dbPath, globalStore);
   }
 
-  const now = new Date();
-  const outDir = path.join(
-    options.outDirBase,
-    `${siteKey}-${now.toISOString().slice(0, 19).replace(/[:T]/g, "-")}`,
-  );
-
   const allRecords: ProductRecord[] = Object.values(perSiteStore);
   const touchedRecords: ProductRecord[] = allRecords.filter((r) =>
     visitedIds.has(r.id),
   );
   const toWrite = snapshotOnlyTouched ? touchedRecords : allRecords;
-
-  await fs.promises.mkdir(outDir, { recursive: true });
-  await writeJson(path.join(outDir, "products.json"), toWrite);
 
   const dur = ((performance.now() - t0) / 1000).toFixed(2);
   console.log(

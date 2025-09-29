@@ -21,12 +21,7 @@ export interface ProductRecord extends Product {
   firstSeen: string; // ISO med tz (t.ex. Europe/Stockholm)
   lastUpdated: string; // ISO med tz
   lastCrawled?: string; // ISO när den senast besöktes
-  sourceUrls: string[]; // alla normaliserade käll-URL:er vi sett den på
   lastmodByUrl?: Record<string, string>;
-  history?: Array<{
-    ts: string; // ISO med tz
-    changes: Partial<Product>;
-  }>;
 }
 
 /** Sitemap-entry */
@@ -44,10 +39,4 @@ export interface Snapshot {
   visited: number;
   wrote: number;
   errors: number;
-}
-
-/** Index över senast kända lastmod/crawl per URL (för delta/refresh) */
-export interface SnapshotIndex {
-  lastmodByUrl: Record<string, string>;
-  lastCrawledAtByUrl: Record<string, string>;
 }

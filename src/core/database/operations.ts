@@ -52,27 +52,6 @@ export function upsertProduct(
     last_updated: record.lastUpdated,
     last_crawled: record.lastCrawled ?? null,
   });
-
-  if (record.sourceUrls && record.sourceUrls.length) {
-    const insSrc = db.prepare(
-      `INSERT OR IGNORE INTO product_sources (id, url) VALUES (?, ?)`,
-    );
-    const tx = db.transaction((urls: string[]) => {
-      for (const u of urls) insSrc.run(record.id, u);
-    });
-    tx(record.sourceUrls);
-  }
-
-  if (record.history && record.history.length) {
-    const insHist = db.prepare(
-      `INSERT INTO product_history (id, ts, changes_json) VALUES (?, ?, ?)`,
-    );
-    const tx = db.transaction((hist: NonNullable<ProductRecord["history"]>) => {
-      for (const h of hist)
-        insHist.run(record.id, h.ts, JSON.stringify(h.changes));
-    });
-    tx(record.history);
-  }
 }
 
 /**
@@ -88,10 +67,6 @@ export function getProductsBySite(
   const rows = db
     .prepare(`SELECT * FROM products WHERE site_host = ?`)
     .all(siteHost);
-  const srcStmt = db.prepare(`SELECT url FROM product_sources WHERE id = ?`);
-  const histStmt = db.prepare(
-    `SELECT ts, changes_json FROM product_history WHERE id = ? ORDER BY ts ASC`,
-  );
   return rows.map((r: any) => ({
     id: r.id,
     name: r.name,
@@ -106,10 +81,6 @@ export function getProductsBySite(
     firstSeen: r.first_seen,
     lastUpdated: r.last_updated,
     lastCrawled: r.last_crawled ?? null,
-    sourceUrls: srcStmt.all(r.id).map((x: any) => x.url),
-    history: histStmt
-      .all(r.id)
-      .map((x: any) => ({ ts: x.ts, changes: JSON.parse(x.changes_json) })),
   }));
 }
 
@@ -149,4 +120,59 @@ export function getStoreIdByHost(
     .prepare(`SELECT id FROM stores WHERE host = ?`)
     .get(host) as any;
   return row ? Number(row.id) : null;
+}
+
+/**
+ * Sets a configuration value in the database
+ * @param db - Database connection
+ * @param key - Configuration key
+ * @param value - Configuration value
+ */
+export function setConfigValue(
+  db: Database.Database,
+  key: string,
+  value: string,
+): void {
+  const stmt = db.prepare(`
+    INSERT INTO configuration (key, value) 
+    VALUES (?, ?) 
+    ON CONFLICT(key) DO UPDATE SET 
+      value = excluded.value,
+      updated_at = datetime('now')
+  `);
+  stmt.run(key, value);
+}
+
+/**
+ * Gets a configuration value from the database
+ * @param db - Database connection
+ * @param key - Configuration key
+ * @returns Configuration value if found, null otherwise
+ */
+export function getConfigValue(
+  db: Database.Database,
+  key: string,
+): string | null {
+  const row = db
+    .prepare(`SELECT value FROM configuration WHERE key = ?`)
+    .get(key) as any;
+  return row ? row.value : null;
+}
+
+/**
+ * Gets all configuration values from the database
+ * @param db - Database connection
+ * @returns Record of all configuration key-value pairs
+ */
+export function getAllConfigValues(
+  db: Database.Database,
+): Record<string, string> {
+  const rows = db
+    .prepare(`SELECT key, value FROM configuration`)
+    .all() as any[];
+  const config: Record<string, string> = {};
+  for (const row of rows) {
+    config[row.key] = row.value;
+  }
+  return config;
 }

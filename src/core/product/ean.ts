@@ -16,13 +16,11 @@ export const idFor = (p: Product, siteHost: string): string =>
   `${siteHost}|${normalizeUrlKey(p.url)}`;
 
 /**
- * Upserts a product into the store by EAN, handling deduplication and history tracking
+ * Upserts a product into the store by EAN, handling deduplication
  * @param store - The product store to update
  * @param incoming - The new product data
  * @param siteHost - The site host for ID generation
  * @param lastmod - Optional last modification timestamp
- * @param trackHistory - Whether to track price/stock changes
- * @param historyKeys - Which fields to track in history
  * @returns Object with the updated record and whether it changed
  */
 export function upsertByEan(
@@ -30,8 +28,6 @@ export function upsertByEan(
   incoming: Product,
   siteHost: string,
   lastmod?: string,
-  trackHistory = false,
-  historyKeys: (keyof Product)[] = ["price", "originalPrice", "inStock"],
 ) {
   const id = idFor(incoming, siteHost);
   const nowIso = formatZonedISO(new Date()); // Stockholmstid
@@ -44,7 +40,6 @@ export function upsertByEan(
       firstSeen: nowIso,
       lastUpdated: nowIso,
       lastCrawled: nowIso,
-      sourceUrls: [normalizeUrlKey(incoming.url)],
       lastmodByUrl: lastmod ? { [normalizeUrlKey(incoming.url)]: lastmod } : {},
     };
     store[id] = rec;
@@ -53,7 +48,6 @@ export function upsertByEan(
 
   const merged: ProductRecord = { ...existing };
   const keyUrl = normalizeUrlKey(incoming.url);
-  if (!merged.sourceUrls.includes(keyUrl)) merged.sourceUrls.push(keyUrl);
   merged.lastmodByUrl = merged.lastmodByUrl || {};
   if (lastmod) merged.lastmodByUrl[keyUrl] = lastmod;
 
@@ -77,20 +71,7 @@ export function upsertByEan(
     }
   });
 
-  if (trackHistory) {
-    const hist: Partial<Product> = {};
-    historyKeys.forEach((k) => {
-      if ((diff as any)[k] !== undefined) (hist as any)[k] = (diff as any)[k];
-    });
-    if (Object.keys(hist).length > 0) {
-      merged.history = merged.history || [];
-      merged.history.push({ ts: nowIso, changes: hist }); // Stockholmstid
-    }
-  }
-
-  const changed =
-    JSON.stringify({ ...existing, history: undefined }) !==
-    JSON.stringify({ ...merged, history: undefined });
+  const changed = JSON.stringify(existing) !== JSON.stringify(merged);
   merged.lastCrawled = nowIso;
   if (changed) merged.lastUpdated = nowIso;
   store[id] = merged;
