@@ -1,18 +1,13 @@
 import "dotenv/config";
 import http from "http";
-import { envInt, envStr } from "./core/config";
-import { runSite } from "./core/execution";
+import { getSiteKeys, runImport } from "./core/services/import-service";
 import { Logger } from "./core/utils/logger";
-import { registry } from "./sites/registry";
-
-// registry is imported from unified module
 
 async function main() {
   const argv = process.argv.slice(2);
 
   const hasFlag = (flag: string) => argv.includes(flag);
   const getArg = (flag: string) => {
-    // Ta ALLTID sista förekomsten om flaggan anges flera gånger
     const i = argv.lastIndexOf(flag);
     return i >= 0 ? argv[i + 1] : undefined;
   };
@@ -22,6 +17,8 @@ async function main() {
 node dist/cli.js --site <key> [--mode full|delta|refresh] [--limit N]
 node dist/cli.js --sites <key1,key2,key3> [--mode full|delta|refresh] [--limit N]
 
+CLI Mode - Bypass queue and run directly
+
 Options:
   --site     Single site to run
   --sites    Multiple sites to run (comma-separated)
@@ -30,15 +27,17 @@ Options:
   --list     List available sites
 
 Examples:
-  npm start -- --site elgiganten --limit 10
-  npm start -- --sites elgiganten,apotea,webhallen --limit 5
+  npm run cli -- --site elgiganten --limit 10
+  npm run cli -- --sites elgiganten,apotea,webhallen --limit 5
 
-Available sites: ${Array.from(registry.keys()).join(", ")}`);
+Available sites: ${getSiteKeys().join(", ")}
+    
+Note: For queue-based processing, use: npm start (uses dist/index.js)`);
     process.exit(0);
   }
 
   if (hasFlag("--list")) {
-    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
+    Logger.info(`Available sites: ${getSiteKeys().join(", ")}`);
     process.exit(0);
   }
 
@@ -47,7 +46,7 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
 
   if (!siteKey && !sitesArg) {
     Logger.error("❌ Missing --site, --sites, or SITE env variable");
-    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
+    Logger.info(`Available sites: ${getSiteKeys().join(", ")}`);
     process.exit(1);
   }
 
@@ -60,69 +59,33 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
     getArg("--limit") ?? (process.env.PRODUCTS_LIMIT || "0"),
   );
 
-  const outBase = envStr("OUT_DIR_BASE", "out");
-
-  // Handle multiple sites
-  if (sitesArg) {
-    const siteKeys = sitesArg
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const validSites = siteKeys.filter((k) => registry.has(k));
-    const invalidSites = siteKeys.filter((k) => !registry.has(k));
-
-    if (invalidSites.length > 0) {
-      Logger.error(`❌ Unknown sites: ${invalidSites.join(", ")}`);
-      Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
-      process.exit(2);
+  try {
+    let siteKeys: string[] | undefined;
+    if (sitesArg) {
+      siteKeys = sitesArg
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (siteKey) {
+      siteKeys = [siteKey];
     }
 
-    if (validSites.length === 0) {
-      Logger.error("❌ No valid sites provided");
-      process.exit(2);
-    }
+    const results = await runImport({
+      siteKeys,
+      runMode,
+      productsLimit: limit,
+    });
+
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
 
     Logger.info(
-      `🚀 Running ${validSites.length} site(s): ${validSites.join(", ")}`,
+      `✅ Import completed: ${successCount} successful, ${failCount} failed`,
     );
-
-    // Run sites sequentially
-    for (const key of validSites) {
-      const adapter = registry.get(key);
-      if (!adapter) continue;
-
-      Logger.info(`\n=== Starting site: ${key} (${adapter.displayName}) ===`);
-      await runSite(adapter, {
-        outDirBase: outBase,
-        runMode,
-        productsLimit: limit,
-        progressEvery: envInt("PROGRESS_EVERY", 100),
-        deltaGraceSeconds: envInt("DELTA_GRACE_SECONDS", 120),
-        refreshTtlDays: envInt("REFRESH_TTL_DAYS", 30),
-      });
-      Logger.info(`=== Finished site: ${key} ===\n`);
-    }
-
-    Logger.info("✅ All sites finished");
-    return;
+  } catch (error: any) {
+    Logger.error(`❌ Import failed: ${error?.message || error}`);
+    process.exit(1);
   }
-
-  // Handle single site
-  const adapter = registry.get(siteKey!);
-  if (!adapter) {
-    Logger.error(`❌ Unknown --site ${siteKey}`);
-    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
-    process.exit(2);
-  }
-
-  await runSite(adapter, {
-    outDirBase: outBase,
-    runMode,
-    productsLimit: limit,
-    progressEvery: envInt("PROGRESS_EVERY", 100),
-    deltaGraceSeconds: envInt("DELTA_GRACE_SECONDS", 120),
-    refreshTtlDays: envInt("REFRESH_TTL_DAYS", 30),
-  });
 }
 
 // Health check server
