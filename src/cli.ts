@@ -1,8 +1,8 @@
 import "dotenv/config";
+import http from "http";
 import { envInt, envStr } from "./core/config";
 import { runSite } from "./core/execution";
 import { Logger } from "./core/utils/logger";
-import http from "http";
 
 // Pharmacy Adapters
 import { adapter as apohem } from "./sites/pharmacy/apohem/adapter";
@@ -96,7 +96,6 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
   );
 
   const outBase = envStr("OUT_DIR_BASE", "out");
-  const snap = envStr("SNAPSHOT_DB_PATH", "state/data.sqlite");
 
   // Handle multiple sites
   if (sitesArg) {
@@ -109,9 +108,7 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
 
     if (invalidSites.length > 0) {
       Logger.error(`❌ Unknown sites: ${invalidSites.join(", ")}`);
-      Logger.info(
-        `Available sites: ${Array.from(registry.keys()).join(", ")}`,
-      );
+      Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
       process.exit(2);
     }
 
@@ -173,9 +170,12 @@ const server = http.createServer((req, res) => {
     res.end();
   }
 });
-server.listen(process.env.HEALTH_PORT ? Number(process.env.HEALTH_PORT) : 8080, () => {
-  Logger.info("Health check endpoint listening on /healthz");
-});
+server.listen(
+  process.env.HEALTH_PORT ? Number(process.env.HEALTH_PORT) : 8080,
+  () => {
+    Logger.info("Health check endpoint listening on /healthz");
+  },
+);
 
 const shutdown = () => {
   Logger.info("Graceful shutdown initiated");
