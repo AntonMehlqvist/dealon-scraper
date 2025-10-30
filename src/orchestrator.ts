@@ -170,9 +170,6 @@ function extractLocs(xml: string): string[] {
 /* --------------- run helpers ------------------- */
 const runOpts = (siteKey: string) => ({
   outDirBase: envStr("OUT_DIR_BASE", "out"),
-  snapshotPath: envStr("SNAPSHOT_DB_PATH", "state/data.sqlite"),
-  eanStorePath: "sqlite",
-  globalEanStorePath: "sqlite",
   runMode: (process.env.RUN_MODE || "delta") as "full" | "delta" | "refresh",
   productsLimit: Number(process.env.PRODUCTS_LIMIT || "0"),
   progressEvery: envInt("PROGRESS_EVERY", 100),

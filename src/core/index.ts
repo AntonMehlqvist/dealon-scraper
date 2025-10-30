@@ -5,9 +5,6 @@
 // Constants
 export * from "./constants";
 
-// Database
-export * from "./database";
-
 // Discovery
 export * from "./discovery";
 

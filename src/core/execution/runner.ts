@@ -9,24 +9,16 @@ import pLimit from "p-limit";
 import { launchBrowser, optimizePage } from "../browser";
 import { discoverProductUrls } from "../discovery";
 import { extractStandard } from "../extraction";
-import { upsertByEan } from "../product";
-import {
-  readGlobalStore,
-  readPerSiteStore,
-  writeGlobalStore,
-  writePerSiteStore,
-} from "../storage";
-import type { ProductRecord, SiteAdapter } from "../types";
+import { saveScrapedProductListings } from "../storage";
+import type { Product } from "../types/product";
 import { formatDuration } from "../utils";
+import sanitizeEan from "../utils/sanitizeEan";
 
 /**
  * Configuration options for running a site extraction
  */
 export interface RunnerOptions {
   outDirBase: string;
-  snapshotPath: string;
-  eanStorePath: string; // kept for compat; DB is used instead
-  globalEanStorePath: string; // kept for compat; DB is used instead
   runMode: "full" | "delta" | "refresh";
   productsLimit: number;
   progressEvery: number;
@@ -46,19 +38,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * @param adapter - Site adapter configuration
  * @param options - Runner configuration options
  */
-export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
+export async function runSite(adapter: any, options: RunnerOptions) {
   const t0 = performance.now();
 
   const siteKey = adapter.key;
   const siteHost = adapter.baseHost;
 
   const dbPath = process.env.DB_PATH || "state/data.sqlite";
-
-  const perSiteStore = await readPerSiteStore(dbPath, siteHost);
-  const globalStore = await readGlobalStore(dbPath);
-  const prevStore: Record<string, ProductRecord> = JSON.parse(
-    JSON.stringify(perSiteStore),
-  );
 
   // NEW: file-based seeds
   const seedFile = (process.env.SEED_FILE || "").trim();
@@ -131,9 +117,6 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
   }
 
   if (discoveryUrls.length === 0) {
-    await writePerSiteStore(dbPath, siteHost, perSiteStore);
-    await writeGlobalStore(dbPath, globalStore);
-
     const dur = ((performance.now() - t0) / 1000).toFixed(2);
     console.log(
       `[info] done site=${siteKey} ok=0 fails=0 wrote=0 visited=0 priceUpdates=0 elapsedSec=${dur}`,
@@ -143,10 +126,9 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
 
   const browser = await launchBrowser();
 
-  const visitedIds = new Set<string>();
   let ok = 0;
   let fails = 0;
-  let priceUpdates = 0;
+  let batchCount = 0;
 
   const PROGRESS_EVERY = Math.max(0, options.progressEvery || 0);
   const PDP_LOG = /^true|1$/i.test(process.env.PDP_LOG || "false");
@@ -157,8 +139,19 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
   ); // cap at 3 to avoid OOM
   const limit = pLimit(concurrency);
   let consecutiveErrors = 0;
-  let batchCount = 0;
   const BATCH_SIZE = 50; // flush every 50 products
+
+  const scrapedProducts: Array<{
+    productName: string;
+    ean?: string | null;
+    price: number;
+    currency: string;
+    inStock: boolean;
+    productUrl: string;
+    imageUrl?: string | null;
+    store: { name: string; domain: string };
+    rawData?: any;
+  }> = [];
 
   const tasks = discoveryUrls.map((url) =>
     limit(async () => {
@@ -192,45 +185,29 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
               throw new Error(`HTTP ${status}`);
             }
 
-            const product = adapter.customExtract
+            const product: Product = adapter.customExtract
               ? await adapter.customExtract(page, url)
               : await extractStandard(adapter, page, url);
 
-            const { record } = upsertByEan(
-              perSiteStore,
-              product,
-              siteHost,
-              undefined,
-            );
-            try {
-              const now = new Date();
-              perSiteStore[record.id].lastCrawled = new Date(
-                now.getTime() - now.getTimezoneOffset() * 60000,
-              )
-                .toISOString()
-                .replace("Z", "+00:00");
-            } catch {}
-            upsertByEan(globalStore, product, siteHost, undefined);
+            scrapedProducts.push({
+              productName: product.name || "",
+              ean: product.ean ? sanitizeEan(product.ean) || null : null,
+              price: product.price ?? 0,
+              currency: product.currency || "SEK",
+              inStock: !!product.inStock,
+              productUrl: product.url,
+              imageUrl: product.imageUrl || null,
+              store: { name: siteKey, domain: siteHost },
+              rawData: product,
+            });
 
-            const prev = prevStore[record.id];
-            if (
-              prev &&
-              typeof prev.price === "number" &&
-              typeof product.price === "number" &&
-              prev.price !== product.price
-            ) {
-              priceUpdates++;
-            }
-
-            visitedIds.add(record.id);
             ok++;
             consecutiveErrors = 0;
             batchCount++;
 
             // batch flush to avoid OOM
             if (batchCount >= BATCH_SIZE) {
-              await writePerSiteStore(dbPath, siteHost, perSiteStore);
-              await writeGlobalStore(dbPath, globalStore);
+              await saveScrapedProductListings(scrapedProducts);
               batchCount = 0;
             }
 
@@ -284,20 +261,13 @@ export async function runSite(adapter: SiteAdapter, options: RunnerOptions) {
   }
 
   // final flush
-  if (batchCount > 0) {
-    await writePerSiteStore(dbPath, siteHost, perSiteStore);
-    await writeGlobalStore(dbPath, globalStore);
+  if (scrapedProducts.length > 0) {
+    await saveScrapedProductListings(scrapedProducts);
   }
-
-  const allRecords: ProductRecord[] = Object.values(perSiteStore);
-  const touchedRecords: ProductRecord[] = allRecords.filter((r) =>
-    visitedIds.has(r.id),
-  );
-  const toWrite = snapshotOnlyTouched ? touchedRecords : allRecords;
 
   const dur = ((performance.now() - t0) / 1000).toFixed(2);
   console.log(
-    `[info] done site=${siteKey} ok=${ok} fails=${fails} wrote=${toWrite.length} visited=${visitedIds.size} priceUpdates=${priceUpdates} elapsedSec=${dur}`,
+    `[info] done site=${siteKey} ok=${ok} fails=${fails} wrote=${scrapedProducts.length} elapsedSec=${dur}`,
   );
 }
 

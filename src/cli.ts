@@ -132,9 +132,6 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
       Logger.info(`\n=== Starting site: ${key} (${adapter.displayName}) ===`);
       await runSite(adapter, {
         outDirBase: outBase,
-        snapshotPath: snap,
-        eanStorePath: "sqlite",
-        globalEanStorePath: "sqlite",
         runMode,
         productsLimit: limit,
         progressEvery: envInt("PROGRESS_EVERY", 100),
@@ -158,9 +155,6 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
 
   await runSite(adapter, {
     outDirBase: outBase,
-    snapshotPath: snap,
-    eanStorePath: "sqlite",
-    globalEanStorePath: "sqlite",
     runMode,
     productsLimit: limit,
     progressEvery: envInt("PROGRESS_EVERY", 100),

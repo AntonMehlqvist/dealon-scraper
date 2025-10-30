@@ -1,110 +1,98 @@
 // src/core/storage.ts
-import { closeDb, openDb } from "./database/connection";
-import {
-  ensureStore,
-  getProductsBySite,
-  upsertProduct,
-} from "./database/operations";
-import { ProductRecord } from "./types";
+import { eq, inArray } from "drizzle-orm";
+import { scrapedProductListings, scrapedStores, stores } from "../schema";
+import { db } from "./drizzleClient";
+import sanitizeEan from "./utils/sanitizeEan";
 
-/** Migrate JSON snapshot/shops into SQLite if DB is empty but JSON exists */
-// Migration from JSON removed (SQLite only)
-
-/* --------------------------- product store helpers --------------------------- */
-
-/**
- * Reads all products for a specific site from the database
- * @param dbPath - Database file path
- * @param siteHost - Site host to filter by
- * @returns Record of product records keyed by product ID
- */
-export async function readPerSiteStore(
-  dbPath: string,
-  siteHost: string,
-): Promise<Record<string, ProductRecord>> {
-  const h = openDb(dbPath);
+function getTopLevelDomain(urlOrHost: string): string {
+  let host = urlOrHost;
   try {
-    const rows = getProductsBySite(h.db, siteHost);
-    const map: Record<string, ProductRecord> = {};
-    for (const r of rows) map[r.id] = r;
-    return map;
-  } finally {
-    closeDb(h);
-  }
+    // Prefix scheme if missing to allow URL parsing
+    const u = urlOrHost.includes("://")
+      ? new URL(urlOrHost)
+      : new URL(`https://${urlOrHost}`);
+    host = u.hostname;
+  } catch {}
+  const splitName = host.split(".").filter(Boolean);
+  const topLevel = splitName.length > 2 ? splitName.slice(-2) : splitName;
+  return topLevel.join(".");
 }
 
-/**
- * Reads all products from all sites in the database
- * @param dbPath - Database file path
- * @returns Record of all product records keyed by product ID
- */
-export async function readGlobalStore(
-  dbPath: string,
-): Promise<Record<string, ProductRecord>> {
-  const h = openDb(dbPath);
-  try {
-    // Global store = all products across hosts
-    // Reuse getProductsBySite by selecting all distinct hosts first
-    const hosts = h.db
-      .prepare(`SELECT DISTINCT site_host AS host FROM products`)
-      .all()
-      .map((x: any) => x.host);
-    const map: Record<string, ProductRecord> = {};
-    for (const host of hosts) {
-      for (const r of getProductsBySite(h.db, host)) map[r.id] = r;
-    }
-    return map;
-  } finally {
-    closeDb(h);
-  }
+function normalizeDomainCandidates(urlOrHost: string): {
+  dotHost: string;
+  hyphenHost: string;
+} {
+  const tld = getTopLevelDomain(urlOrHost).replace(/^www\./i, "");
+  const dotHost = tld;
+  const hyphenHost = tld.replaceAll(".", "-");
+  return { dotHost, hyphenHost };
 }
 
-/**
- * Writes product records for a specific site to the database
- * @param dbPath - Database file path
- * @param _siteHost - Site host (currently unused, derived from product URLs)
- * @param store - Record of product records to write
- */
-export async function writePerSiteStore(
-  dbPath: string,
-  _siteHost: string,
-  store: Record<string, ProductRecord>,
-): Promise<void> {
-  const h = openDb(dbPath);
-  try {
-    const tx = h.db.transaction((records: ProductRecord[]) => {
-      for (const rec of records) {
-        const host = new URL(rec.url).host;
-        const storeId = ensureStore(h.db, host);
-        upsertProduct(h.db, rec, storeId);
-      }
-    });
-    tx(Object.values(store));
-  } finally {
-    closeDb(h);
+export async function saveScrapedStoreDrizzle(store: {
+  name: string;
+  domain: string;
+}) {
+  const { dotHost, hyphenHost } = normalizeDomainCandidates(store.domain);
+
+  // 1) Try to find a match in main stores table by either convention
+  const prodMatch = await db
+    .select()
+    .from(stores)
+    .where(inArray(stores.storeDomain, [dotHost, hyphenHost]))
+    .limit(1);
+
+  // 2) Ensure scraped_stores row exists (always required for FK)
+  const scrapedMatch = await db
+    .select()
+    .from(scrapedStores)
+    .where(eq(scrapedStores.domain, dotHost))
+    .limit(1);
+
+  let scrapedRowId: number | null = scrapedMatch[0]?.id ?? null;
+  if (!scrapedRowId) {
+    const [inserted] = await db
+      .insert(scrapedStores)
+      .values({ name: store.name, domain: dotHost })
+      .returning();
+    scrapedRowId = inserted.id;
   }
+
+  const matchedStoreId = prodMatch[0]?.id ?? null;
+  return { scrapedStoreId: scrapedRowId, matchedStoreId };
 }
 
-/**
- * Writes all product records to the database
- * @param dbPath - Database file path
- * @param store - Record of all product records to write
- */
-export async function writeGlobalStore(
-  dbPath: string,
-  store: Record<string, ProductRecord>,
-): Promise<void> {
-  const h = openDb(dbPath);
-  try {
-    const tx = h.db.transaction((records: ProductRecord[]) => {
-      for (const rec of records) {
-        const host = new URL(rec.url).host;
-        const storeId = ensureStore(h.db, host);
-        upsertProduct(h.db, rec, storeId);
-      }
-    });
-    tx(Object.values(store));
-  } finally {
-    closeDb(h);
+export async function saveScrapedProductListings(
+  listings: Array<{
+    productName: string;
+    ean?: string | null;
+    price: number;
+    currency: string;
+    inStock: boolean;
+    productUrl: string;
+    imageUrl?: string | null;
+    store: { name: string; domain: string };
+    rawData?: any;
+  }>,
+) {
+  for (const l of listings) {
+    const storeIds = await saveScrapedStoreDrizzle(l.store);
+    const rawEan = l.ean ?? l.rawData?.ean ?? null;
+    const ean = rawEan ? sanitizeEan(rawEan) : null;
+    const priceInt = Number.isFinite(l.price) ? Math.round(l.price) : null;
+    await db
+      .insert(scrapedProductListings)
+      .values({
+        productName: l.productName,
+        ean: ean,
+        price: priceInt ?? undefined,
+        currency: l.currency,
+        inStock: l.inStock,
+        productUrl: l.productUrl,
+        imageUrl: l.imageUrl || null,
+        scrapedStoreId: storeIds.scrapedStoreId,
+        matchedStoreId: storeIds.matchedStoreId ?? undefined,
+        rawData: l.rawData ? l.rawData : {},
+      })
+      .onConflictDoNothing();
   }
 }
