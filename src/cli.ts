@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { envInt, envStr } from "./core/config";
 import { runSite } from "./core/execution";
+import { Logger } from "./core/utils/logger";
+import http from "http";
 
 // Pharmacy Adapters
 import { adapter as apohem } from "./sites/pharmacy/apohem/adapter";
@@ -51,7 +53,7 @@ async function main() {
   };
 
   if (hasFlag("--help")) {
-    console.log(`Usage:
+    Logger.info(`Usage:
 node dist/cli.js --site <key> [--mode full|delta|refresh] [--limit N]
 node dist/cli.js --sites <key1,key2,key3> [--mode full|delta|refresh] [--limit N]
 
@@ -71,7 +73,7 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
   }
 
   if (hasFlag("--list")) {
-    console.log(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
+    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
     process.exit(0);
   }
 
@@ -79,8 +81,8 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
   const sitesArg = getArg("--sites");
 
   if (!siteKey && !sitesArg) {
-    console.error("❌ Missing --site, --sites, or SITE env variable");
-    console.error(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
+    Logger.error("❌ Missing --site, --sites, or SITE env variable");
+    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
     process.exit(1);
   }
 
@@ -106,19 +108,19 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
     const invalidSites = siteKeys.filter((k) => !registry.has(k));
 
     if (invalidSites.length > 0) {
-      console.error(`❌ Unknown sites: ${invalidSites.join(", ")}`);
-      console.error(
+      Logger.error(`❌ Unknown sites: ${invalidSites.join(", ")}`);
+      Logger.info(
         `Available sites: ${Array.from(registry.keys()).join(", ")}`,
       );
       process.exit(2);
     }
 
     if (validSites.length === 0) {
-      console.error("❌ No valid sites provided");
+      Logger.error("❌ No valid sites provided");
       process.exit(2);
     }
 
-    console.log(
+    Logger.info(
       `🚀 Running ${validSites.length} site(s): ${validSites.join(", ")}`,
     );
 
@@ -127,7 +129,7 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
       const adapter = registry.get(key);
       if (!adapter) continue;
 
-      console.log(`\n=== Starting site: ${key} (${adapter.displayName}) ===`);
+      Logger.info(`\n=== Starting site: ${key} (${adapter.displayName}) ===`);
       await runSite(adapter, {
         outDirBase: outBase,
         snapshotPath: snap,
@@ -139,18 +141,18 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
         deltaGraceSeconds: envInt("DELTA_GRACE_SECONDS", 120),
         refreshTtlDays: envInt("REFRESH_TTL_DAYS", 30),
       });
-      console.log(`=== Finished site: ${key} ===\n`);
+      Logger.info(`=== Finished site: ${key} ===\n`);
     }
 
-    console.log("✅ All sites finished");
+    Logger.info("✅ All sites finished");
     return;
   }
 
   // Handle single site
   const adapter = registry.get(siteKey!);
   if (!adapter) {
-    console.error(`❌ Unknown --site ${siteKey}`);
-    console.error(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
+    Logger.error(`❌ Unknown --site ${siteKey}`);
+    Logger.info(`Available sites: ${Array.from(registry.keys()).join(", ")}`);
     process.exit(2);
   }
 
@@ -167,7 +169,36 @@ Available sites: ${Array.from(registry.keys()).join(", ")}`);
   });
 }
 
+// Health check server
+const server = http.createServer((req, res) => {
+  if (req.url === "/healthz") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("ok");
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+server.listen(process.env.HEALTH_PORT ? Number(process.env.HEALTH_PORT) : 8080, () => {
+  Logger.info("Health check endpoint listening on /healthz");
+});
+
+const shutdown = () => {
+  Logger.info("Graceful shutdown initiated");
+  server.close(() => {
+    Logger.info("Health server closed");
+    process.exit(0);
+  });
+  setTimeout(() => {
+    Logger.warn("Forced exit after 5s");
+    process.exit(1);
+  }, 5000);
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
 main().catch((e) => {
-  console.error(e);
+  Logger.error(e);
   process.exit(1);
 });

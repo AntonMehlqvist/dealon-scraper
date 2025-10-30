@@ -8,7 +8,9 @@
     "start-all": "npm run build && RUN_MODE=full node dist/orchestrator.js --sites apotea,apoteket,kronans,apohem,hjartat",
     "prod": "npm run build && npm run start",
     "help": "npm run build && npm start -- --help",
-    "migrate": "node dist/migrate.js"
+    "migrate": "node dist/migrate.js",
+    "lint": "eslint . --ext .ts,.js || true",
+    "health": "curl -f http://localhost:8080/healthz || exit 1"
   },
   "dependencies": {
     "@types/cheerio": "^0.22.35",
@@ -16,6 +18,7 @@
     "cheerio": "^1.1.2",
     "dotenv": "^16.4.5",
     "p-limit": "^4.0.0",
+    "pino": "^10.1.0",
     "playwright": "^1.46.0"
   },
   "devDependencies": {
