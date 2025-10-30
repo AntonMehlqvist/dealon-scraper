@@ -18,7 +18,7 @@
     "health": "curl -f http://localhost:8080/healthz || exit 1",
     "worker": "node dist/worker.js",
     "scheduler": "node dist/scheduler.js",
-    "deploy:prod": "pnpm install && pnpm build && pnpm db:migrate && pm2 reload ecosystem.config.cjs --env prod",
+    "deploy:prod": "pnpm install && pnpm build && pnpm db:migrate && pm2 reload ecosystem.config.cjs --env prod"
   },
   "dependencies": {
     "@types/cheerio": "^0.22.35",
