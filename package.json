@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/cli.js",
-    "start-all": "npm run build && RUN_MODE=full node dist/orchestrator.js --sites apotea,apoteket,kronans,apohem,hjartat",
+    "start-all": "npm run build && RUN_MODE=full node dist/orchestrator.js --category all",
+    "start-electronics": "npm run build && RUN_MODE=full node dist/orchestrator.js --category electronics",
+    "start-pharmacy": "npm run build && RUN_MODE=full node dist/orchestrator.js --category pharmacy",
     "prod": "npm run build && npm run start",
     "help": "npm run build && npm start -- --help",
     "migrate": "node dist/migrate.js",

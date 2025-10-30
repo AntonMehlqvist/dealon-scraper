@@ -4,66 +4,10 @@ import { promises as fs } from "fs";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { envInt, envStr } from "./core/config";
-import { DEFAULT_SITES } from "./core/config/sites";
 import { runSite } from "./core/execution";
+import { DEFAULT_SITES, SITE_CATEGORIES, registry } from "./sites/registry";
 
-// Pharmacy Adapters
-import { adapter as apohem } from "./sites/pharmacy/apohem/adapter";
-import { adapter as apotea } from "./sites/pharmacy/apotea/adapter";
-import { adapter as apoteket } from "./sites/pharmacy/apoteket/adapter";
-import { adapter as hjartat } from "./sites/pharmacy/hjartat/adapter";
-import { adapter as kronans } from "./sites/pharmacy/kronans/adapter";
-
-// Electronics Adapters
-import { adapter as elgiganten } from "./sites/electronics/elgiganten/adapter";
-import { adapter as inet } from "./sites/electronics/inet/adapter";
-import { adapter as kjell } from "./sites/electronics/kjell/adapter";
-import { adapter as netonnet } from "./sites/electronics/netonnet/adapter";
-import { adapter as power } from "./sites/electronics/power/adapter";
-import { adapter as webhallen } from "./sites/electronics/webhallen/adapter";
-
-// Template
-import { adapter as template } from "./sites/_template/adapter";
-
-/* ---------------- Site Categories ---------------- */
-const SITE_CATEGORIES = {
-  pharmacy: {
-    name: "Pharmacy",
-    sites: ["apoteket", "apotea", "kronans", "apohem", "hjartat"],
-    description: "Swedish pharmacy websites",
-  },
-  electronics: {
-    name: "Electronics",
-    sites: ["elgiganten", "webhallen", "netonnet", "power", "kjell", "inet"],
-    description: "Electronics and technology retailers",
-  },
-  template: {
-    name: "Template",
-    sites: ["_template"],
-    description: "Template for new adapters",
-  },
-} as const;
-
-/* ---------------- Site Registry ---------------- */
-const registry = new Map<string, any>([
-  // Pharmacy sites
-  ["apoteket", apoteket],
-  ["apotea", apotea],
-  ["kronans", kronans],
-  ["apohem", apohem],
-  ["hjartat", hjartat],
-
-  // Electronics sites
-  ["elgiganten", elgiganten],
-  ["webhallen", webhallen],
-  ["netonnet", netonnet],
-  ["power", power],
-  ["kjell", kjell],
-  ["inet", inet],
-
-  // Template
-  ["_template", template],
-]);
+/* ---------------- Site Categories & Registry imported from unified module ---------------- */
 
 /* ---------------- CLI Helpers ---------------- */
 function showHelp() {

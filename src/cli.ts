@@ -3,44 +3,9 @@ import http from "http";
 import { envInt, envStr } from "./core/config";
 import { runSite } from "./core/execution";
 import { Logger } from "./core/utils/logger";
+import { registry } from "./sites/registry";
 
-// Pharmacy Adapters
-import { adapter as apohem } from "./sites/pharmacy/apohem/adapter";
-import { adapter as apotea } from "./sites/pharmacy/apotea/adapter";
-import { adapter as apoteket } from "./sites/pharmacy/apoteket/adapter";
-import { adapter as hjartat } from "./sites/pharmacy/hjartat/adapter";
-import { adapter as kronans } from "./sites/pharmacy/kronans/adapter";
-
-// Electronics Adapters
-import { adapter as elgiganten } from "./sites/electronics/elgiganten/adapter";
-import { adapter as inet } from "./sites/electronics/inet/adapter";
-import { adapter as kjell } from "./sites/electronics/kjell/adapter";
-import { adapter as netonnet } from "./sites/electronics/netonnet/adapter";
-import { adapter as power } from "./sites/electronics/power/adapter";
-import { adapter as webhallen } from "./sites/electronics/webhallen/adapter";
-
-// Template
-import { adapter as template } from "./sites/_template/adapter";
-
-const registry = new Map<string, any>([
-  // Pharmacy sites
-  ["apoteket", apoteket],
-  ["apotea", apotea],
-  ["kronans", kronans],
-  ["apohem", apohem],
-  ["hjartat", hjartat],
-
-  // Electronics sites
-  ["elgiganten", elgiganten],
-  ["webhallen", webhallen],
-  ["netonnet", netonnet],
-  ["power", power],
-  ["kjell", kjell],
-  ["inet", inet],
-
-  // Template
-  ["_template", template],
-]);
+// registry is imported from unified module
 
 async function main() {
   const argv = process.argv.slice(2);
