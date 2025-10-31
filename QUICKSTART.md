@@ -29,10 +29,11 @@ npm start
 ```
 
 This will:
+
 - ✅ Upsert recurring import schedules for all categories
 - ✅ Start the worker to process jobs
 - ✅ Run daily at 2 AM automatically
-- ✅ Listen on port 8080 for health checks
+- ✅ Listen on port 3210 for health checks
 
 ### CLI Mode (Direct Execution)
 
@@ -65,14 +66,14 @@ npm run start-electronics # Electronics sites only
 
 ## Available NPM Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Main entry point (queue mode) |
-| `npm run cli` | Direct CLI execution |
-| `npm run dev` | Build and start in one command |
-| `npm run worker` | Run worker only (standalone) |
-| `npm run scheduler` | Configure recurring jobs only |
-| `npm run help` | Show CLI help |
+| Command             | Description                    |
+| ------------------- | ------------------------------ |
+| `npm start`         | Main entry point (queue mode)  |
+| `npm run cli`       | Direct CLI execution           |
+| `npm run dev`       | Build and start in one command |
+| `npm run worker`    | Run worker only (standalone)   |
+| `npm run scheduler` | Configure recurring jobs only  |
+| `npm run help`      | Show CLI help                  |
 
 ## Environment Variables
 
@@ -92,7 +93,7 @@ OUT_DIR_BASE=out
 DB_PATH=state/data.sqlite
 
 # Health check
-HEALTH_PORT=8080
+HEALTH_PORT=3210
 ```
 
 See `.example.env` for all available options.
@@ -115,7 +116,7 @@ npm run cli (Direct):
 
 ```bash
 # Health check
-curl http://localhost:8080/healthz
+curl http://localhost:3210/healthz
 
 # Redis queue status
 redis-cli KEYS bull:import-jobs:*
@@ -136,7 +137,7 @@ tail -f logs/app.log
 
 1. Verify jobs are scheduled: `npm run scheduler`
 2. Check worker is running: Look for "Application is ready"
-3. Check health endpoint: `curl http://localhost:8080/healthz`
+3. Check health endpoint: `curl http://localhost:3210/healthz`
 
 ### Import errors
 
@@ -149,4 +150,3 @@ tail -f logs/app.log
 - Read `QUEUE_SETUP.md` for detailed documentation
 - Customize schedules with `npm run scheduler`
 - Scale horizontally with PM2 or Docker
-

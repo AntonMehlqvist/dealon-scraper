@@ -52,9 +52,10 @@ npm run dev
 ```
 
 This will:
+
 - Automatically upsert recurring job schedules for all categories
 - Start the worker to process jobs
-- Listen on port 8080 for health checks
+- Listen on port 3210 for health checks
 
 #### Manual Scheduling (Optional)
 
@@ -65,8 +66,9 @@ npm run scheduler
 ```
 
 This schedules daily imports at 2 AM for all categories:
+
 - `pharmacy` - All pharmacy sites
-- `electronics` - All electronics sites  
+- `electronics` - All electronics sites
 - `all` - All sites
 
 Customize the schedule:
@@ -107,20 +109,23 @@ This bypasses the BullMQ queue entirely and runs the import directly.
 Schedule a one-time job programmatically:
 
 ```typescript
-import { createImportQueue, scheduleOneTimeImport } from './core/services/queue';
+import {
+  createImportQueue,
+  scheduleOneTimeImport,
+} from "./core/services/queue";
 
 const queue = createImportQueue();
 
 // Run specific sites
 await scheduleOneTimeImport(queue, {
-  siteKeys: ['apotea', 'elgiganten'],
-  runMode: 'delta',
+  siteKeys: ["apotea", "elgiganten"],
+  runMode: "delta",
 });
 
 // Run a category
 await scheduleOneTimeImport(queue, {
-  category: 'pharmacy',
-  runMode: 'full',
+  category: "pharmacy",
+  runMode: "full",
   productsLimit: 1000,
 });
 ```
@@ -130,27 +135,32 @@ await scheduleOneTimeImport(queue, {
 ### Components
 
 1. **`src/index.ts`** (Main Entry Point)
+
    - Primary application entry point
    - Automatically upserts recurring jobs
    - Starts the worker to process jobs
-   - Health check endpoint on port 8080
+   - Health check endpoint on port 3210
 
 2. **`src/core/services/import-service.ts`**
+
    - Core import orchestration logic
    - Can be called from CLI or worker
    - Handles site scheduling and chunking
 
 3. **`src/core/services/queue.ts`**
+
    - BullMQ queue configuration
    - Job scheduling utilities
    - Redis connection setup
 
 4. **`src/worker.ts`**
+
    - Standalone worker process (if run separately)
    - Processes jobs from queue
    - Health check endpoint on port 8081
 
 5. **`src/cli.ts`**
+
    - Direct CLI execution bypassing the queue
    - Useful for testing and development
 
@@ -210,7 +220,7 @@ CLI Mode (npm run cli):
 
 Both CLI and worker expose health check endpoints:
 
-- CLI: `http://localhost:8080/healthz`
+- CLI: `http://localhost:3210/healthz`
 - Worker: `http://localhost:8081/healthz`
 
 ### Redis Commands
@@ -247,10 +257,10 @@ npm install @bull-board/express @bull-board/api
 Then create a dashboard:
 
 ```typescript
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { ExpressAdapter } from '@bull-board/express';
-import { createImportQueue } from './core/services/queue';
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { ExpressAdapter } from "@bull-board/express";
+import { createImportQueue } from "./core/services/queue";
 
 const serverAdapter = new ExpressAdapter();
 const queue = createImportQueue();
@@ -260,8 +270,8 @@ createBullBoard({
   serverAdapter,
 });
 
-serverAdapter.setBasePath('/admin/queues');
-app.use('/admin/queues', serverAdapter.getRouter());
+serverAdapter.setBasePath("/admin/queues");
+app.use("/admin/queues", serverAdapter.getRouter());
 ```
 
 ## Deployment
@@ -306,13 +316,13 @@ pm2 start dist/scheduler.js --name scheduler --no-autorestart
 ### Docker Compose
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-  
+
   app:
     build: .
     command: npm start
@@ -322,7 +332,7 @@ services:
     depends_on:
       - redis
     deploy:
-      replicas: 3  # Scale to multiple instances
+      replicas: 3 # Scale to multiple instances
 ```
 
 ## Migration from CLI to Queue
@@ -343,7 +353,7 @@ Your existing scripts continue to work. The queue system is additive:
 1. Check Redis is running: `redis-cli ping` (should return PONG)
 2. Check application is connected: Look for "Application is ready and listening for jobs"
 3. Verify jobs are scheduled: `redis-cli KEYS bull:import-jobs:*`
-4. Check health endpoint: `curl http://localhost:8080/healthz`
+4. Check health endpoint: `curl http://localhost:3210/healthz`
 
 ### Jobs failing
 
@@ -358,4 +368,3 @@ Run scheduler again: `npm run scheduler`. Check output for errors.
 Remove all jobs: `redis-cli FLUSHALL` (⚠️ deletes all data)
 
 Remove specific repeatable jobs: Use `npm run scheduler` and look for "Total scheduled jobs" count.
-

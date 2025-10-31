@@ -83,7 +83,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(
-  process.env.HEALTH_PORT ? Number(process.env.HEALTH_PORT) : 8080,
+  process.env.HEALTH_PORT ? Number(process.env.HEALTH_PORT) : 3210,
   () => {
     Logger.info("Health check endpoint listening on /healthz");
   },
