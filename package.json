@@ -4,7 +4,7 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && fix-tsc-es-imports -y -V",
     "start": "node dist/index.js",
     "dev": "npm run build && npm start",
     "cli": "node dist/cli.js",
@@ -36,6 +36,7 @@
     "@types/node": "^22.0.0",
     "@types/pg": "^8.15.6",
     "dotenv-cli": "^10.0.0",
+    "fix-tsc-es-imports": "^0.1.6",
     "pino-pretty": "^13.1.2",
     "typescript": "^5.5.0"
   }
