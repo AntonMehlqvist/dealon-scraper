@@ -29,7 +29,7 @@ async function main() {
 
   for (const [key] of Object.entries(categories)) {
     // Skip template category
-    if (key === "template") continue;
+    if (key === "template" || key === "all") continue;
 
     try {
       await scheduleRecurringImport(queue, key, {
