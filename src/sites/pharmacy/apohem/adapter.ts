@@ -1,5 +1,5 @@
 import type { Page, Route, Request } from "playwright";
-import type { SiteAdapter, Product } from "../../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types/index";
 
 const ORIGIN = "https://www.apohem.se";
 const absUrl = (u: string | null) => {

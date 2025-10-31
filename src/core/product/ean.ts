@@ -2,8 +2,8 @@
  * Product EAN handling and upserting logic
  */
 
-import type { Product, ProductRecord } from "../types";
-import { formatZonedISO, normalizeUrlKey } from "../utils";
+import type { Product, ProductRecord } from "../types/index";
+import { formatZonedISO, normalizeUrlKey } from "../utils/index";
 
 /**
  * Generates a unique ID for a product based on EAN or normalized URL

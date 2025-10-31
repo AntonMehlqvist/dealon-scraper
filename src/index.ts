@@ -27,7 +27,7 @@ async function main() {
   const categories = getCategories();
   Logger.info("Setting up recurring import schedules");
 
-  for (const [key, cat] of Object.entries(categories)) {
+  for (const [key] of Object.entries(categories)) {
     // Skip template category
     if (key === "template") continue;
 

@@ -7,8 +7,8 @@ import { promises as fs } from "fs";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { DEFAULT_SITES, SITE_CATEGORIES, registry } from "../../sites/registry";
-import { envInt, envStr } from "../config";
-import { runSite } from "../execution";
+import { envInt, envStr } from "../config/index";
+import { runSite } from "../execution/index";
 import { Logger } from "../utils/logger";
 
 export interface ImportServiceOptions {

@@ -3,7 +3,7 @@
  */
 
 import type { Page } from "playwright";
-import type { Product, SiteAdapter } from "../types";
+import type { Product, SiteAdapter } from "../types/index";
 
 /**
  * Extracts product information using standard JSON-LD and DOM fallback methods

@@ -1,18 +1,22 @@
 // src/core/extractors.ts
-import type { Product } from "./types";
-
 export function parseJsonLdScripts(html: string): any[] {
   const scripts = html.match(
-    /<script[^>]*type=["']application\/ld\+json[^"']*["'][^>]*>([\s\S]*?)<\/script>/gi
+    /<script[^>]*type=["']application\/ld\+json[^"']*["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
   const out: any[] = [];
   if (!scripts) return out;
   for (const raw of scripts) {
     try {
-      const jsonTxt = raw.replace(/^<script[^>]*>/i, "").replace(/<\/script>$/i, "");
+      const jsonTxt = raw
+        .replace(/^<script[^>]*>/i, "")
+        .replace(/<\/script>$/i, "");
       const parsed = JSON.parse(jsonTxt);
       if (Array.isArray(parsed)) out.push(...parsed);
-      else if (parsed && typeof parsed === "object" && Array.isArray(parsed["@graph"]))
+      else if (
+        parsed &&
+        typeof parsed === "object" &&
+        Array.isArray(parsed["@graph"])
+      )
         out.push(...(parsed["@graph"] as any[]));
       else out.push(parsed);
     } catch {}
@@ -34,7 +38,7 @@ export function extractOriginalFromHtml(html: string): number | null {
   if (del) candidates.push(del[1]);
 
   const oldCls = html.match(
-    /<[^>]+class=["'][^"']*(old|strike|was|previous|before|compare|former|original)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i
+    /<[^>]+class=["'][^"']*(old|strike|was|previous|before|compare|former|original)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
   );
   if (oldCls) candidates.push(oldCls[2]);
 
@@ -59,15 +63,22 @@ export function extractOriginalFromHtml(html: string): number | null {
 
 export function extractNostoPricesFromHtml(html: string) {
   const blockMatch = html.match(
-    /<div[^>]+class=["'][^"']*nosto_product[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+    /<div[^>]+class=["'][^"']*nosto_product[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
   );
   if (!blockMatch)
-    return {} as { price?: number | null; listPrice?: number | null; currency?: string | null };
+    return {} as {
+      price?: number | null;
+      listPrice?: number | null;
+      currency?: string | null;
+    };
   const block = blockMatch[1];
 
   const read = (cls: string) => {
     const m = block.match(
-      new RegExp(`<span[^>]+class=["'][^"']*${cls}[^"']*["'][^>]*>([\\s\\S]*?)<\\/span>`, "i")
+      new RegExp(
+        `<span[^>]+class=["'][^"']*${cls}[^"']*["'][^>]*>([\\s\\S]*?)<\\/span>`,
+        "i",
+      ),
     );
     return m ? m[1].trim() : null;
   };
@@ -79,7 +90,9 @@ export function extractNostoPricesFromHtml(html: string) {
 }
 
 export function extractGtinFromText(text: string): string | null {
-  const candidates = Array.from(text.matchAll(/\b\d{8,14}\b/g)).map((m) => m[0]);
+  const candidates = Array.from(text.matchAll(/\b\d{8,14}\b/g)).map(
+    (m) => m[0],
+  );
   candidates.sort((a, b) => b.length - a.length);
   for (const c of candidates) if (isValidGtin(c)) return c;
   return null;

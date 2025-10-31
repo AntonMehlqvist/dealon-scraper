@@ -1,8 +1,11 @@
 {
   "name": "multi-site",
   "version": "0.1.0",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && fix-tsc-es-imports -y -V",
     "start": "node dist/index.js",

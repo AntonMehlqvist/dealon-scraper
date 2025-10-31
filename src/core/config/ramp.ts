@@ -2,7 +2,7 @@
  * Ramp schedule parsing utilities
  */
 
-import type { RampStep } from "../types";
+import type { RampStep } from "../types/index";
 
 export function parseRampSchedule(s: string): RampStep[] {
   const steps = s

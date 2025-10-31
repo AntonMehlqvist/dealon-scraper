@@ -1,4 +1,4 @@
-import { SiteAdapter } from '../../core/types';
+import { SiteAdapter } from '../../core/types/index';
 
 
 export const adapter: SiteAdapter = {

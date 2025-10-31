@@ -1,6 +1,6 @@
 // src/sites/kjell/adapter.ts
 import type { Page, Route, Request } from "playwright";
-import type { SiteAdapter, Product } from "../../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types/index";
 
 const ORIGIN = "https://www.kjell.com";
 const abs = (u: string | null) =>

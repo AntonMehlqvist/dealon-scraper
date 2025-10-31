@@ -1,6 +1,6 @@
 // src/sites/power/adapter.ts
 import type { Page, Request, Route } from "playwright";
-import type { Product, SiteAdapter } from "../../../core/types";
+import type { Product, SiteAdapter } from "../../../core/types/index";
 
 const ORIGIN = "https://www.power.se";
 const abs = (u: string | null) =>

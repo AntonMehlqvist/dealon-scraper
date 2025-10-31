@@ -2,7 +2,7 @@
  * Pacing configuration utilities
  */
 
-import type { PacingConfig, RampStep } from "../types";
+import type { PacingConfig, RampStep } from "../types/index";
 
 /** Säkra defaults så vi aldrig triggar TS18048 eller 2345 */
 const DEFAULTS = {

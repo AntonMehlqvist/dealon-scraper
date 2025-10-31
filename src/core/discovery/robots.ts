@@ -2,7 +2,7 @@
  * Robots.txt sitemap discovery
  */
 
-import { uniq } from "../utils";
+import { uniq } from "../utils/index";
 import { fetchText } from "./fetcher";
 
 /**

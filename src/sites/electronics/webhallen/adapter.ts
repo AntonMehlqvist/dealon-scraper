@@ -1,6 +1,6 @@
 // src/sites/webhallen/adapter.ts
-import type { SiteAdapter, Product } from "../../../core/types";
 import { load as loadHtml } from "cheerio";
+import type { Product, SiteAdapter } from "../../../core/types/index";
 
 const PDP_LOG = process.env.PDP_LOG === "1" || process.env.PDP_LOG === "true";
 
@@ -54,7 +54,7 @@ function textOrNull(s?: string | null): string | null {
 async function tryConsent(page: import("playwright").Page) {
   // Försök täcka in vanliga varianter
   const candidates = [
-    'button#onetrust-accept-btn-handler',
+    "button#onetrust-accept-btn-handler",
     'button[aria-label*="Acceptera"][id*="onetrust"]',
     'button[aria-label*="Accept"]',
     'button:has-text("Acceptera alla")',
@@ -140,7 +140,11 @@ function extractProductFromJsonLd(html: string): Partial<Product> {
           firstOffer.itemAvailability ??
           firstOffer.availabilityStatus;
         if (typeof avail === "string") {
-          inStock = /InStock$/i.test(avail) ? true : /OutOfStock$/i.test(avail) ? false : null;
+          inStock = /InStock$/i.test(avail)
+            ? true
+            : /OutOfStock$/i.test(avail)
+            ? false
+            : null;
         }
       }
     }
@@ -175,7 +179,9 @@ function extractProductFromJsonLd(html: string): Partial<Product> {
   };
 }
 
-async function extractProductFallback(page: import("playwright").Page): Promise<Partial<Product>> {
+async function extractProductFallback(
+  page: import("playwright").Page,
+): Promise<Partial<Product>> {
   // H1 / titel
   const titleSelCandidates = [
     "h1",
@@ -282,11 +288,15 @@ async function extractProductFallback(page: import("playwright").Page): Promise<
   let ean: string | null = null;
 
   for (const sel of eanCandidates) {
-    const html = await page.locator(sel).first().innerHTML().catch(() => null);
+    const html = await page
+      .locator(sel)
+      .first()
+      .innerHTML()
+      .catch(() => null);
     if (!html) continue;
     const $ = loadHtml(html);
     // vanliga mönster: "EAN", "GTIN", "EAN/GTIN"
-    const txt = $.text();
+    const txt = $.root().text();
     const m =
       txt.match(/\b(?:EAN|GTIN)\s*[:：]?\s*([0-9]{8,14})\b/i) ??
       txt.match(/([0-9]{8,14})\s*(?:\(?(?:EAN|GTIN)\)?)/i);
@@ -299,7 +309,10 @@ async function extractProductFallback(page: import("playwright").Page): Promise<
       const key = $(el).text().trim();
       if (!ean && /^(EAN|GTIN)$/i.test(key)) {
         const dd = $(el).next("dd,td");
-        const val = dd.text().trim().match(/\d{8,14}/)?.[0];
+        const val = dd
+          .text()
+          .trim()
+          .match(/\d{8,14}/)?.[0];
         if (val) ean = val;
       }
     });
@@ -308,7 +321,9 @@ async function extractProductFallback(page: import("playwright").Page): Promise<
   // Lagerstatus
   let inStock: boolean | null = null;
   const stockText = await page
-    .locator(':text-matches("I lager|Finns i lager|Slut i lager|Out of stock", "i")')
+    .locator(
+      ':text-matches("I lager|Finns i lager|Slut i lager|Out of stock", "i")',
+    )
     .first()
     .textContent()
     .catch(() => null);
@@ -339,7 +354,8 @@ const adapter: SiteAdapter = {
       // vissa miljöer pekar om eller har .gz
       "https://www.webhallen.com/sitemap.product.xml.gz",
     ],
-    productUrlRegex: /https?:\/\/www\.webhallen\.com\/se\/product\/\d+-[A-Za-z0-9-]+/i,
+    productUrlRegex:
+      /https?:\/\/www\.webhallen\.com\/se\/product\/\d+-[A-Za-z0-9-]+/i,
   },
 
   normalizeUrl,
@@ -347,9 +363,9 @@ const adapter: SiteAdapter = {
   defaults: { currency: "SEK" },
 
   pacing: {
-    navWaitPdp: "domcontentloaded",   // före: "networkidle"
-    pdpConcurrency: 6,                 // lite upp från 3
-    pdpTimeoutMs: 9000,                // ner från 25s
+    navWaitPdp: "domcontentloaded", // före: "networkidle"
+    pdpConcurrency: 6, // lite upp från 3
+    pdpTimeoutMs: 9000, // ner från 25s
     gotoMinSpacingMs: 150,
     minDelayMs: 0,
     maxDelayMs: 20,
@@ -367,15 +383,21 @@ const adapter: SiteAdapter = {
       throw new Error("Not a PDP");
     }
 
-    await page.goto(u, { waitUntil: "networkidle", timeout: 30_000 }).catch(() => {});
+    await page
+      .goto(u, { waitUntil: "networkidle", timeout: 30_000 })
+      .catch(() => {});
     await tryConsent(page);
 
     // Vänta på antingen JSON-data, titel eller pris-element
     try {
       await Promise.race([
-        page.waitForSelector('script[type="application/ld+json"]', { timeout: 5_000 }),
+        page.waitForSelector('script[type="application/ld+json"]', {
+          timeout: 5_000,
+        }),
         page.waitForSelector("h1", { timeout: 5_000 }),
-        page.waitForSelector('[itemprop="price"], [class*="price"]', { timeout: 5_000 }),
+        page.waitForSelector('[itemprop="price"], [class*="price"]', {
+          timeout: 5_000,
+        }),
       ]);
     } catch {
       // fortsätt ändå – vissa sidor är långsamma men networkidle räcker ofta
@@ -386,7 +408,10 @@ const adapter: SiteAdapter = {
 
     // Om JSON-LD saknar viktiga fält, komplettera från DOM
     const needFallback =
-      !fromJson?.name || fromJson.price == null || !fromJson.ean || !fromJson.imageUrl;
+      !fromJson?.name ||
+      fromJson.price == null ||
+      !fromJson.ean ||
+      !fromJson.imageUrl;
 
     let fromDom: Partial<Product> = {};
     if (needFallback) {
@@ -407,7 +432,9 @@ const adapter: SiteAdapter = {
 
     if (PDP_LOG) {
       log(
-        `[pdp][webhallen] ${merged.name ?? "(no name)"} | price=${merged.price} | currency=${merged.currency} | ean=${merged.ean}`
+        `[pdp][webhallen] ${merged.name ?? "(no name)"} | price=${
+          merged.price
+        } | currency=${merged.currency} | ean=${merged.ean}`,
       );
     }
 
@@ -417,4 +444,3 @@ const adapter: SiteAdapter = {
 
 export { adapter };
 export default adapter;
-

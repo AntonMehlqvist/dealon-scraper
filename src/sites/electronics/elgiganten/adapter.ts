@@ -1,6 +1,6 @@
 // src/sites/elgiganten/adapter.ts
 import type { Page, Request, Route } from "playwright";
-import type { Product, SiteAdapter } from "../../../core/types";
+import type { Product, SiteAdapter } from "../../../core/types/index";
 
 const ORIGIN = "https://www.elgiganten.se";
 const abs = (u: string | null) =>

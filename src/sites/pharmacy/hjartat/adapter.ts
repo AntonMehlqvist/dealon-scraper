@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { SiteAdapter, Product } from "../../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types/index";
 
 async function fetchHtml(url: string): Promise<string | null> {
   try {

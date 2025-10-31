@@ -2,7 +2,7 @@
  * Shared HTTP fetching utilities for discovery
  */
 
-import { BROWSER_CONSTANTS } from "../constants";
+import { BROWSER_CONSTANTS } from "../constants/index";
 
 /**
  * Fetches text content from a URL with browser-like headers

@@ -1,5 +1,5 @@
 // src/core/sitemap.ts
-import { SitemapEntry } from "./types";
+import { SitemapEntry } from "./types/index";
 
 /**
  * Hämta och parsa en sitemap eller sitemap-index.

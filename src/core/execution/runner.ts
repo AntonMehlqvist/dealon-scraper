@@ -4,14 +4,14 @@
 
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
-import pLimit from "p-limit";
+const { default: pLimit } = await import("p-limit");
 
-import { launchBrowser, optimizePage } from "../browser";
-import { discoverProductUrls } from "../discovery";
-import { extractStandard } from "../extraction";
+import { launchBrowser, optimizePage } from "../browser/index";
+import { discoverProductUrls } from "../discovery/index";
+import { extractStandard } from "../extraction/index";
 import { saveScrapedProductListings } from "../storage";
 import type { Product } from "../types/product";
-import { formatDuration } from "../utils";
+import { formatDuration } from "../utils/index";
 import sanitizeEan from "../utils/sanitizeEan";
 
 /**
@@ -44,8 +44,6 @@ export async function runSite(adapter: any, options: RunnerOptions) {
   const siteKey = adapter.key;
   const siteHost = adapter.baseHost;
 
-  const dbPath = process.env.DB_PATH || "state/data.sqlite";
-
   // NEW: file-based seeds
   const seedFile = (process.env.SEED_FILE || "").trim();
   let fileSeeds: string[] = [];
@@ -66,9 +64,6 @@ export async function runSite(adapter: any, options: RunnerOptions) {
     .map((s) => s.trim())
     .filter(Boolean);
   const seedOnly = /^true|1$/i.test(process.env.SEED_ONLY || "false");
-  const snapshotOnlyTouched = /^true|1$/i.test(
-    process.env.SNAPSHOT_ONLY_TOUCHED || "false",
-  );
 
   let discoveryUrls: string[] = [];
 

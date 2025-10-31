@@ -1,6 +1,6 @@
 // src/sites/kronans/adapter.ts
 import type { Page, Route, Request, Response } from "playwright";
-import type { SiteAdapter, Product } from "../../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types/index";
 
 const ORIGIN = "https://www.kronansapotek.se";
 const abs = (u: string | null) =>

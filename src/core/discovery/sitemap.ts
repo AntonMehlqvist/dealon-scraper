@@ -2,8 +2,8 @@
  * Sitemap parsing and URL discovery
  */
 
-import type { SiteAdapter } from "../types";
-import { normalizeUrlKey, resolveLocation, uniq } from "../utils";
+import type { SiteAdapter } from "../types/index";
+import { normalizeUrlKey, resolveLocation, uniq } from "../utils/index";
 import { fetchText } from "./fetcher";
 import { robotsSitemaps } from "./robots";
 

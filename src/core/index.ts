@@ -3,37 +3,37 @@
  */
 
 // Constants
-export * from "./constants";
+export * from "./constants/index";
 
 // Discovery
-export * from "./discovery";
+export * from "./discovery/index";
 
 // Extraction
-export * from "./extraction";
+export * from "./extraction/index";
 
 // Browser
-export * from "./browser";
+export * from "./browser/index";
 
 // Execution
-export * from "./execution";
+export * from "./execution/index";
 
 // Product
-export * from "./product";
+export * from "./product/index";
 
 // Storage
 export * from "./storage";
 
 // Utils
-export * from "./utils";
+export * from "./utils/index";
 
 // Config
-export * from "./config";
+export * from "./config/index";
 
 // Types
-export * from "./types";
+export * from "./types/index";
 
 // Validation
-export * from "./validation";
+export * from "./validation/index";
 
 // Sitemap (legacy)
 export * from "./sitemap";

@@ -1,6 +1,6 @@
 // src/sites/netonnet/adapter.ts
 import type { Page, Route, Request } from "playwright";
-import type { SiteAdapter, Product } from "../../../core/types";
+import type { SiteAdapter, Product } from "../../../core/types/index";
 
 const ORIGIN = "https://www.netonnet.se";
 const abs = (u: string | null) => !u ? null : u.startsWith("//") ? "https:" + u : u.startsWith("/") ? ORIGIN + u : u;

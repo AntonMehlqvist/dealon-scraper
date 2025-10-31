@@ -17,6 +17,7 @@ export async function optimizePage(page: Page): Promise<void> {
       if (t === "image" || t === "font" || t === "stylesheet")
         return route.abort();
       route.continue();
+      return;
     });
   } catch {}
 }

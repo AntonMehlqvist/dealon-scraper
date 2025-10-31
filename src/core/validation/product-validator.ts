@@ -2,7 +2,7 @@
  * Product validation utilities
  */
 
-import type { Product, ProductRecord } from "../types";
+import type { Product, ProductRecord } from "../types/index";
 
 export class ValidationError extends Error {
   constructor(message: string, public field?: string) {
